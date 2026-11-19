@@ -9,6 +9,7 @@ import {
   Printer,
   Search,
   Sparkles,
+  Pencil,
 } from "lucide-react";
 import { AppShell } from "@/components/m3/AppShell";
 import {
@@ -28,6 +29,7 @@ import {
   addAvaria,
   useCanRecord,
   useMe,
+  type Produto,
 } from "@/lib/data";
 import { generatePrintReport } from "@/lib/printReport";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
@@ -68,6 +70,7 @@ function Vendas() {
   const [kind, setKind] = useState<"all" | "receita" | "despesa" | "transferencia">("all");
   const [q, setQ] = useState("");
   const [prodDrawerOpen, setProdDrawerOpen] = useState(false);
+  const [editProduto, setEditProduto] = useState<Produto | undefined>(undefined);
   const [avariaDrawerOpen, setAvariaDrawerOpen] = useState(false);
 
   const boxSummary = summarizeBox(allTx, "vendas", boxReservations);
@@ -271,9 +274,20 @@ function Vendas() {
                   </div>
                   <div className="mt-4 flex items-center justify-between border-t border-outline-variant/20 pt-3">
                     <span className="text-base font-black text-income">{brl(p.preco_venda)}</span>
-                    <span className="text-xs text-muted-foreground">
-                      Custo: {brl(p.custo)} • Com.: {brl(p.comissao)}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">
+                        Custo: {brl(p.custo)} • Com.: {brl(p.comissao)}
+                      </span>
+                      {canRecord && (
+                        <button
+                          onClick={() => { setEditProduto(p); setProdDrawerOpen(true); }}
+                          className="p-1.5 rounded-full hover:bg-surface-variant/60 text-muted-foreground hover:text-primary transition-colors"
+                          title="Editar produto"
+                        >
+                          <Pencil className="size-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
