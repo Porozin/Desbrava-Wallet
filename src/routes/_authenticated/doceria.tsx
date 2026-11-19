@@ -30,10 +30,12 @@ import {
   useCanRecord,
   useMe,
   type Produto,
+  type MaterialItem,
 } from "@/lib/data";
 import { generatePrintReport } from "@/lib/printReport";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { ProductRecipeDrawer } from "@/components/m3/ProductRecipeDrawer";
+import { MaterialDrawer } from "@/components/m3/MaterialDrawer";
 import { PdvGrid } from "@/components/m3/PdvGrid";
 import { toast } from "sonner";
 
@@ -73,6 +75,7 @@ function Doceria() {
   const [matDrawerOpen, setMatDrawerOpen] = useState(false);
   const [prodDrawerOpen, setProdDrawerOpen] = useState(false);
   const [editProduto, setEditProduto] = useState<Produto | undefined>(undefined);
+  const [editMaterial, setEditMaterial] = useState<MaterialItem | undefined>(undefined);
 
   const boxSummary = summarizeBox(allTx, "doceria", boxReservations);
   const { profit, margin } = profitMargin(boxSummary.income, boxSummary.expense);
@@ -352,7 +355,16 @@ function Doceria() {
                       </p>
                     </div>
                   </div>
-                  <span className="text-sm font-bold text-foreground">{brl(mat.custo_total)}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-foreground">{brl(mat.custo_total)}</span>
+                    {canRecord && (
+                      <button onClick={() => { setEditMaterial(mat); setMatDrawerOpen(true); }}
+                        className="p-1.5 rounded-full hover:bg-surface-variant/60 text-muted-foreground hover:text-primary transition-colors"
+                        title="Editar insumo">
+                        <Pencil className="size-3.5" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -360,46 +372,13 @@ function Doceria() {
         </div>
       )}
 
-      {/* Drawer: Novo Insumo */}
-      <Drawer open={matDrawerOpen} onOpenChange={setMatDrawerOpen}>
-        <DrawerContent className="rounded-t-3xl bg-surface-container-low max-w-lg mx-auto">
-          <DrawerHeader>
-            <DrawerTitle className="text-lg font-black text-foreground">Novo Insumo / Ingrediente</DrawerTitle>
-          </DrawerHeader>
-          <form onSubmit={handleAddMaterial} className="space-y-4 px-4 pb-8">
-            <input
-              name="nome"
-              placeholder="Nome do insumo (ex: Leite Condensado, Chocolate 50%)"
-              className="h-14 w-full rounded-2xl border border-outline-variant/60 bg-surface px-4 text-sm outline-none focus:border-2 focus:border-primary"
-              required
-            />
-            <div className="grid grid-cols-2 gap-3">
-              <input
-                name="quantidade"
-                type="number"
-                defaultValue={1}
-                min={1}
-                placeholder="Qtd"
-                className="h-14 w-full rounded-2xl border border-outline-variant/60 bg-surface px-4 text-sm outline-none focus:border-2 focus:border-primary"
-                required
-              />
-              <input
-                name="custo_total"
-                inputMode="decimal"
-                placeholder="Custo Total (R$)"
-                className="h-14 w-full rounded-2xl border border-outline-variant/60 bg-surface px-4 text-sm outline-none focus:border-2 focus:border-primary"
-                required
-              />
-            </div>
-            <button
-              type="submit"
-              className="h-12 w-full rounded-2xl bg-primary text-primary-foreground font-bold text-sm"
-            >
-              Salvar Insumo
-            </button>
-          </form>
-        </DrawerContent>
-      </Drawer>
+      {/* MaterialDrawer: criar ou editar insumo */}
+      <MaterialDrawer
+        open={matDrawerOpen}
+        onOpenChange={(v) => { setMatDrawerOpen(v); if (!v) setEditMaterial(undefined); }}
+        modulo="doceria"
+        material={editMaterial}
+      />
 
       {/* Drawer: Novo Doce & Receita com Insumos */}
       <ProductRecipeDrawer
