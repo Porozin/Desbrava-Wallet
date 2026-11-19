@@ -24,6 +24,7 @@ import {
   type Transaction,
 } from "@/lib/finance";
 import { reverseTransaction, useCanRecord, useIsAdmin, deleteTransaction } from "@/lib/data";
+import { useHaptic } from "@/hooks/useHaptic";
 
 export interface ResponsiveTransactionListProps {
   items: Transaction[];
@@ -48,6 +49,7 @@ export const ResponsiveTransactionList: React.FC<ResponsiveTransactionListProps>
 }) => {
   const canRecord = useCanRecord();
   const isAdmin = useIsAdmin();
+  const { vibrate } = useHaptic();
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
   const [reverseReason, setReverseReason] = useState("");
   const [reversing, setReversing] = useState(false);
@@ -61,6 +63,7 @@ export const ResponsiveTransactionList: React.FC<ResponsiveTransactionListProps>
     try {
       await deleteTransaction(selectedTx.id);
       toast.success("Movimentação excluída permanentemente.");
+      vibrate("heavy");
       setShowDeleteConfirm(false);
       setSelectedTx(null);
     } catch (err: any) {
@@ -79,11 +82,13 @@ export const ResponsiveTransactionList: React.FC<ResponsiveTransactionListProps>
     try {
       await reverseTransaction(selectedTx.id, reverseReason.trim());
       toast.success("Lançamento estornado e lançamento compensatório registrado!");
+      vibrate("success");
       setShowReverseConfirm(false);
       setSelectedTx(null);
       setReverseReason("");
     } catch (err: any) {
       toast.error(err?.message || "Falha ao estornar lançamento.");
+      vibrate("error");
     } finally {
       setReversing(false);
     }

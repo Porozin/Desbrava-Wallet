@@ -16,6 +16,7 @@ import {
 } from "@/lib/finance";
 import { addTransaction, useCanRecord } from "@/lib/data";
 import { useCategories } from "@/lib/categories";
+import { useHaptic } from "@/hooks/useHaptic";
 
 export { MetricCard } from "./MetricCard";
 export { ResponsiveTransactionList } from "./ResponsiveTransactionList";
@@ -117,6 +118,7 @@ export function NewEntryFab({
   const [saving, setSaving] = useState(false);
   const [amountValue, setAmountValue] = useState("");
   const canRecord = useCanRecord();
+  const { vibrate } = useHaptic();
   if (!canRecord) return null;
 
   const targetBoxId: CashBoxId = boxId || (module === "clube" ? "geral" : (module as CashBoxId));
@@ -173,9 +175,11 @@ export function NewEntryFab({
         seller: withSeller ? String(f.get("seller") || "") || undefined : undefined,
       });
       toast.success("Movimentação registrada com sucesso!");
+      vibrate("success");
       setOpen(false);
     } catch (err: any) {
       toast.error(err?.message || "Não foi possível salvar a movimentação.");
+      vibrate("error");
     } finally {
       setSaving(false);
     }
@@ -234,10 +238,13 @@ export function NewEntryFab({
                     <button
                       key={v}
                       type="button"
-                      onClick={() => setAmountValue((prev) => {
-                        const current = parseFloat(prev.replace(",", ".")) || 0;
-                        return String((current + v).toFixed(2));
-                      })}
+                      onClick={() => {
+                        vibrate("light");
+                        setAmountValue((prev) => {
+                          const current = parseFloat(prev.replace(",", ".")) || 0;
+                          return String((current + v).toFixed(2));
+                        });
+                      }}
                       className="flex-1 h-8 rounded-xl bg-surface-container-high text-xs font-bold text-foreground hover:bg-secondary-container hover:text-on-secondary-container transition-all"
                     >
                       +{v}

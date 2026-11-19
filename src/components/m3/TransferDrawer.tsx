@@ -15,6 +15,7 @@ import {
   useReservations,
   useTransactions,
 } from "@/lib/data";
+import { useHaptic } from "@/hooks/useHaptic";
 
 interface TransferDrawerProps {
   open: boolean;
@@ -32,6 +33,7 @@ export const TransferDrawer: React.FC<TransferDrawerProps> = ({
   const allTx = useTransactions();
   const allRes = useReservations();
   const canRecord = useCanRecord();
+  const { vibrate } = useHaptic();
 
   const [originBox, setOriginBox] = useState<CashBoxId>(defaultOriginBox);
   const [destBox, setDestBox] = useState<CashBoxId>(
@@ -88,11 +90,13 @@ export const TransferDrawer: React.FC<TransferDrawerProps> = ({
       toast.success(
         `Transferência de ${brl(amountCents / 100)} de ${CASH_BOX_LABEL[originBox]} para ${CASH_BOX_LABEL[destBox]} realizada com sucesso!`
       );
+      vibrate("success");
       setAmountStr("");
       setDescription("");
       onOpenChange(false);
     } catch (err: any) {
       toast.error(err?.message || "Falha ao processar transferência.");
+      vibrate("error");
     } finally {
       setLoading(false);
     }
