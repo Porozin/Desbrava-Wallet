@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { AlertTriangle, Trash2 } from "lucide-react";
+import { AlertTriangle, Trash2, Users, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
-import { wipeAllData } from "@/lib/data";
+import { wipeAllData, wipeAllDataWithUsers } from "@/lib/data";
 
 const CONFIRM_PHRASE = "APAGAR TUDO";
+
+type WipeMode = "data-only" | "include-users" | null;
 
 interface Props {
   open: boolean;
@@ -15,11 +17,13 @@ interface Props {
 export function WipeDataDrawer({ open, onOpenChange }: Props) {
   const qc = useQueryClient();
   const [step, setStep] = useState<1 | 2>(1);
+  const [wipeMode, setWipeMode] = useState<WipeMode>(null);
   const [typed, setTyped] = useState("");
   const [wiping, setWiping] = useState(false);
 
   function reset() {
     setStep(1);
+    setWipeMode(null);
     setTyped("");
     setWiping(false);
   }
@@ -29,6 +33,11 @@ export function WipeDataDrawer({ open, onOpenChange }: Props) {
     onOpenChange(val);
   }
 
+  function selectMode(mode: WipeMode) {
+    setWipeMode(mode);
+    setStep(2);
+  }
+
   async function handleWipe() {
     if (typed !== CONFIRM_PHRASE) {
       toast.error(`Digite exatamente "${CONFIRM_PHRASE}" para confirmar.`);
@@ -36,8 +45,13 @@ export function WipeDataDrawer({ open, onOpenChange }: Props) {
     }
     setWiping(true);
     try {
-      await wipeAllData();
-      toast.success("Todos os dados financeiros foram removidos com sucesso.");
+      if (wipeMode === "include-users") {
+        await wipeAllDataWithUsers();
+        toast.success("Todos os dados e usuários foram removidos com sucesso.");
+      } else {
+        await wipeAllData();
+        toast.success("Todos os dados financeiros foram removidos. Usuários preservados.");
+      }
       qc.invalidateQueries();
       handleOpenChange(false);
     } catch (err: any) {
@@ -47,41 +61,69 @@ export function WipeDataDrawer({ open, onOpenChange }: Props) {
     }
   }
 
+  const modeLabel =
+    wipeMode === "include-users"
+      ? "Apagar tudo, incluindo usuários"
+      : "Apagar dados, manter usuários";
+
   return (
     <Drawer open={open} onOpenChange={handleOpenChange}>
       <DrawerContent className="rounded-t-3xl bg-surface-container-low max-w-lg mx-auto p-4">
         <DrawerHeader>
           <DrawerTitle className="text-lg font-black text-destructive flex items-center gap-2">
-            <AlertTriangle className="size-5" /> Apagar Todos os Dados
+            <AlertTriangle className="size-5" /> Limpeza Total do Sistema
           </DrawerTitle>
         </DrawerHeader>
 
+        {/* Step 1 — Escolha do modo */}
         {step === 1 && (
-          <div className="px-4 pb-6 space-y-4">
-            <div className="p-4 rounded-2xl bg-destructive/10 border border-destructive/30 space-y-2">
-              <p className="text-sm font-bold text-destructive">⚠️ ATENÇÃO: Esta ação é irreversível!</p>
-              <p className="text-xs text-foreground/80">
-                Os seguintes dados serão <strong>permanentemente removidos</strong>:
-              </p>
-              <ul className="text-xs text-foreground/70 list-disc ml-4 space-y-0.5">
-                <li>Todas as transações e movimentações</li>
-                <li>Todas as metas financeiras</li>
-                <li>Todas as dívidas e controle interno</li>
-                <li>Todos os materiais do almoxarifado</li>
-                <li>Todos os produtos e receitas</li>
-                <li>Todas as avarias registradas</li>
-              </ul>
-              <p className="text-xs text-foreground/80 mt-2">
-                <strong>Serão preservados:</strong> usuários, perfis e permissões (cargos).
-              </p>
-            </div>
+          <div className="px-2 pb-6 space-y-4">
+            <p className="text-xs text-muted-foreground">
+              Escolha o que deseja apagar. <strong className="text-destructive">Esta ação é irreversível.</strong>
+            </p>
 
+            {/* Opção A — manter usuários */}
             <button
-              onClick={() => setStep(2)}
-              className="h-12 w-full rounded-2xl bg-destructive text-white font-bold text-sm flex items-center justify-center gap-2"
+              onClick={() => selectMode("data-only")}
+              className="w-full text-left p-4 rounded-2xl border-2 border-orange-300/60 bg-orange-50 dark:bg-orange-950/30 hover:border-orange-500/80 transition-all space-y-1.5"
             >
-              <Trash2 className="size-4" /> Entendi, quero continuar
+              <div className="flex items-center gap-2">
+                <Trash2 className="size-5 text-orange-600 dark:text-orange-400" />
+                <span className="text-sm font-bold text-orange-800 dark:text-orange-300">
+                  Apagar dados, manter usuários
+                </span>
+              </div>
+              <ul className="text-xs text-orange-700 dark:text-orange-400 list-disc ml-6 space-y-0.5">
+                <li>Todas as transações e movimentações</li>
+                <li>Metas, dívidas, materiais, produtos e avarias</li>
+                <li>Reservas e logs de auditoria</li>
+              </ul>
+              <p className="text-xs font-semibold text-orange-800 dark:text-orange-300 mt-1">
+                ✅ Usuários, perfis e cargos são preservados.
+              </p>
             </button>
+
+            {/* Opção B — incluir usuários */}
+            <button
+              onClick={() => selectMode("include-users")}
+              className="w-full text-left p-4 rounded-2xl border-2 border-destructive/50 bg-destructive/8 dark:bg-red-950/40 hover:border-destructive transition-all space-y-1.5"
+            >
+              <div className="flex items-center gap-2">
+                <ShieldAlert className="size-5 text-destructive" />
+                <span className="text-sm font-bold text-destructive">
+                  Apagar tudo, incluindo usuários
+                </span>
+              </div>
+              <ul className="text-xs text-destructive/80 list-disc ml-6 space-y-0.5">
+                <li>Tudo da opção acima, mais:</li>
+                <li>Todas as contas de usuário</li>
+                <li>Perfis e permissões de acesso</li>
+              </ul>
+              <p className="text-xs font-semibold text-destructive mt-1">
+                ⚠️ O sistema ficará vazio e bloqueado até novo cadastro.
+              </p>
+            </button>
+
             <button
               onClick={() => handleOpenChange(false)}
               className="h-10 w-full rounded-2xl bg-surface-container-high text-foreground font-semibold text-sm"
@@ -91,16 +133,21 @@ export function WipeDataDrawer({ open, onOpenChange }: Props) {
           </div>
         )}
 
+        {/* Step 2 — Confirmação por digitação */}
         {step === 2 && (
-          <div className="px-4 pb-6 space-y-4">
-            <div className="p-4 rounded-2xl bg-destructive/10 border border-destructive/30">
-              <p className="text-sm font-bold text-destructive mb-2">
-                Confirmação Final — Passo 2 de 2
+          <div className="px-2 pb-6 space-y-4">
+            <div className="p-4 rounded-2xl bg-destructive/10 border border-destructive/30 space-y-1">
+              <p className="text-sm font-bold text-destructive">
+                {wipeMode === "include-users" ? (
+                  <span className="flex items-center gap-1.5"><Users className="size-4" /> {modeLabel}</span>
+                ) : (
+                  <span className="flex items-center gap-1.5"><Trash2 className="size-4" /> {modeLabel}</span>
+                )}
               </p>
               <p className="text-xs text-foreground/80">
-                Para confirmar a exclusão, digite exatamente:
+                Para confirmar, digite exatamente:
               </p>
-              <p className="text-center text-lg font-black text-destructive my-3 tracking-wider">
+              <p className="text-center text-lg font-black text-destructive my-2 tracking-wider">
                 {CONFIRM_PHRASE}
               </p>
             </div>
@@ -123,11 +170,12 @@ export function WipeDataDrawer({ open, onOpenChange }: Props) {
               <Trash2 className="size-4" />
               {wiping ? "Apagando…" : "Confirmar Exclusão Permanente"}
             </button>
+
             <button
-              onClick={() => handleOpenChange(false)}
+              onClick={() => { setStep(1); setTyped(""); }}
               className="h-10 w-full rounded-2xl bg-surface-container-high text-foreground font-semibold text-sm"
             >
-              Cancelar
+              ← Voltar
             </button>
           </div>
         )}
@@ -135,4 +183,3 @@ export function WipeDataDrawer({ open, onOpenChange }: Props) {
     </Drawer>
   );
 }
-

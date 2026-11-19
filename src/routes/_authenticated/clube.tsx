@@ -7,6 +7,7 @@ import {
   Package,
   Target,
   Plus,
+  Pencil,
 } from "lucide-react";
 import { AppShell } from "@/components/m3/AppShell";
 import {
@@ -27,7 +28,9 @@ import {
   addMaterial,
   useCanRecord,
   useMe,
+  type Meta,
 } from "@/lib/data";
+import { MetaDrawer } from "@/components/m3/MetaDrawer";
 import { generatePrintReport } from "@/lib/printReport";
 import { toast } from "sonner";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
@@ -66,6 +69,7 @@ function Clube() {
   const [kind, setKind] = useState<"all" | "receita" | "despesa" | "transferencia">("all");
   const [q, setQ] = useState("");
   const [metaDrawerOpen, setMetaDrawerOpen] = useState(false);
+  const [editMeta, setEditMeta] = useState<Meta | undefined>(undefined);
   const [matDrawerOpen, setMatDrawerOpen] = useState(false);
 
   const boxSummary = summarizeBox(allTx, "geral", boxReservations);
@@ -241,9 +245,20 @@ function Clube() {
                   </div>
                   <div className="mt-4 flex items-center justify-between border-t border-outline-variant/20 pt-3">
                     <span className="text-sm font-black text-primary">{brl(m.valor_alvo)}</span>
-                    <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-secondary-container text-on-secondary-container">
-                      {m.status}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-secondary-container text-on-secondary-container">
+                        {m.status}
+                      </span>
+                      {canRecord && (
+                        <button
+                          onClick={() => { setEditMeta(m); setMetaDrawerOpen(true); }}
+                          className="p-1.5 rounded-full hover:bg-surface-variant/60 text-muted-foreground hover:text-primary transition-colors"
+                          title="Editar meta"
+                        >
+                          <Pencil className="size-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -298,35 +313,15 @@ function Clube() {
         </div>
       )}
 
-      {/* Drawer: Nova Meta */}
-      <Drawer open={metaDrawerOpen} onOpenChange={setMetaDrawerOpen}>
-        <DrawerContent className="rounded-t-3xl bg-surface-container-low max-w-lg mx-auto">
-          <DrawerHeader>
-            <DrawerTitle className="text-lg font-black text-foreground">Nova Meta do Clube</DrawerTitle>
-          </DrawerHeader>
-          <form onSubmit={handleAddMeta} className="space-y-4 px-4 pb-8">
-            <input
-              name="descricao"
-              placeholder="Descrição da meta (ex: Compra de barracas)"
-              className="h-14 w-full rounded-2xl border border-outline-variant/60 bg-surface px-4 text-sm outline-none focus:border-2 focus:border-primary"
-              required
-            />
-            <input
-              name="valor_alvo"
-              inputMode="decimal"
-              placeholder="Valor alvo (R$)"
-              className="h-14 w-full rounded-2xl border border-outline-variant/60 bg-surface px-4 text-sm outline-none focus:border-2 focus:border-primary"
-              required
-            />
-            <button
-              type="submit"
-              className="h-12 w-full rounded-2xl bg-primary text-primary-foreground font-bold text-sm"
-            >
-              Salvar Meta
-            </button>
-          </form>
-        </DrawerContent>
-      </Drawer>
+      {/* MetaDrawer: criar ou editar meta */}
+      <MetaDrawer
+        open={metaDrawerOpen}
+        onOpenChange={(v) => {
+          setMetaDrawerOpen(v);
+          if (!v) setEditMeta(undefined);
+        }}
+        meta={editMeta}
+      />
 
       {/* Drawer: Novo Material */}
       <Drawer open={matDrawerOpen} onOpenChange={setMatDrawerOpen}>

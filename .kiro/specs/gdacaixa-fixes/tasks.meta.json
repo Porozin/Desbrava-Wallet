@@ -1,0 +1,346 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1.1 Write migration SQL to recreate `sp_estornar_transacao`": [
+      {
+        "executionId": "c2983713-830d-48ed-ba70-728946ebe540",
+        "chatSessionId": "sess_15ee306e-ac00-4fe4-9cf5-f6b7eb185fc2",
+        "timestamp": 1795061528547
+      },
+      {
+        "executionId": "c2983713-830d-48ed-ba70-728946ebe540",
+        "chatSessionId": "sess_15ee306e-ac00-4fe4-9cf5-f6b7eb185fc2",
+        "timestamp": 1795061533456
+      },
+      {
+        "executionId": "c2983713-830d-48ed-ba70-728946ebe540",
+        "chatSessionId": "sess_15ee306e-ac00-4fe4-9cf5-f6b7eb185fc2",
+        "timestamp": 1795062059927
+      }
+    ],
+    "1.2 Verify migration applies cleanly and existing reversal tests still pass": [
+      {
+        "executionId": "c2983713-830d-48ed-ba70-728946ebe540",
+        "chatSessionId": "sess_15ee306e-ac00-4fe4-9cf5-f6b7eb185fc2",
+        "timestamp": 1795061528624
+      },
+      {
+        "executionId": "c2983713-830d-48ed-ba70-728946ebe540",
+        "chatSessionId": "sess_15ee306e-ac00-4fe4-9cf5-f6b7eb185fc2",
+        "timestamp": 1795062071877
+      },
+      {
+        "executionId": "c2983713-830d-48ed-ba70-728946ebe540",
+        "chatSessionId": "sess_15ee306e-ac00-4fe4-9cf5-f6b7eb185fc2",
+        "timestamp": 1795062497689
+      }
+    ],
+    "2. Checkpoint — Estorno fix": [
+      {
+        "executionId": "c2983713-830d-48ed-ba70-728946ebe540",
+        "chatSessionId": "sess_15ee306e-ac00-4fe4-9cf5-f6b7eb185fc2",
+        "timestamp": 1795061528680
+      }
+    ],
+    "3.1 Implement `updateMeta` function": [
+      {
+        "executionId": "c2983713-830d-48ed-ba70-728946ebe540",
+        "chatSessionId": "sess_15ee306e-ac00-4fe4-9cf5-f6b7eb185fc2",
+        "timestamp": 1795061528756
+      },
+      {
+        "executionId": "c2983713-830d-48ed-ba70-728946ebe540",
+        "chatSessionId": "sess_15ee306e-ac00-4fe4-9cf5-f6b7eb185fc2",
+        "timestamp": 1795061537962
+      },
+      {
+        "executionId": "c2983713-830d-48ed-ba70-728946ebe540",
+        "chatSessionId": "sess_15ee306e-ac00-4fe4-9cf5-f6b7eb185fc2",
+        "timestamp": 1795062063171
+      }
+    ],
+    "3.2 Add Supabase realtime subscription to `useMetas`": [
+      {
+        "executionId": "c2983713-830d-48ed-ba70-728946ebe540",
+        "chatSessionId": "sess_15ee306e-ac00-4fe4-9cf5-f6b7eb185fc2",
+        "timestamp": 1795061528826
+      },
+      {
+        "executionId": "c2983713-830d-48ed-ba70-728946ebe540",
+        "chatSessionId": "sess_15ee306e-ac00-4fe4-9cf5-f6b7eb185fc2",
+        "timestamp": 1795062075867
+      },
+      {
+        "executionId": "c2983713-830d-48ed-ba70-728946ebe540",
+        "chatSessionId": "sess_15ee306e-ac00-4fe4-9cf5-f6b7eb185fc2",
+        "timestamp": 1795062504119
+      }
+    ],
+    "3.3 Write unit tests for `updateMeta`": [
+      {
+        "executionId": "c2983713-830d-48ed-ba70-728946ebe540",
+        "chatSessionId": "sess_15ee306e-ac00-4fe4-9cf5-f6b7eb185fc2",
+        "timestamp": 1795061528870
+      },
+      {
+        "executionId": "c2983713-830d-48ed-ba70-728946ebe540",
+        "chatSessionId": "sess_15ee306e-ac00-4fe4-9cf5-f6b7eb185fc2",
+        "timestamp": 1795062518051
+      },
+      {
+        "executionId": "c2983713-830d-48ed-ba70-728946ebe540",
+        "chatSessionId": "sess_15ee306e-ac00-4fe4-9cf5-f6b7eb185fc2",
+        "timestamp": 1795062546921
+      }
+    ],
+    "4.1 Implement the MetaDrawer component scaffold": [
+      {
+        "executionId": "c2983713-830d-48ed-ba70-728946ebe540",
+        "chatSessionId": "sess_15ee306e-ac00-4fe4-9cf5-f6b7eb185fc2",
+        "timestamp": 1795061528925
+      },
+      {
+        "executionId": "c2983713-830d-48ed-ba70-728946ebe540",
+        "chatSessionId": "sess_15ee306e-ac00-4fe4-9cf5-f6b7eb185fc2",
+        "timestamp": 1795062080796
+      },
+      {
+        "executionId": "c2983713-830d-48ed-ba70-728946ebe540",
+        "chatSessionId": "sess_15ee306e-ac00-4fe4-9cf5-f6b7eb185fc2",
+        "timestamp": 1795062507922
+      }
+    ],
+    "4.2 Implement form fields and controlled state": [
+      {
+        "executionId": "c2983713-830d-48ed-ba70-728946ebe540",
+        "chatSessionId": "sess_15ee306e-ac00-4fe4-9cf5-f6b7eb185fc2",
+        "timestamp": 1795061528979
+      },
+      {
+        "executionId": "c2983713-830d-48ed-ba70-728946ebe540",
+        "chatSessionId": "sess_15ee306e-ac00-4fe4-9cf5-f6b7eb185fc2",
+        "timestamp": 1795062521095
+      },
+      {
+        "executionId": "c2983713-830d-48ed-ba70-728946ebe540",
+        "chatSessionId": "sess_15ee306e-ac00-4fe4-9cf5-f6b7eb185fc2",
+        "timestamp": 1795062550810
+      }
+    ],
+    "4.3 Wire Save and Delete actions": [
+      {
+        "executionId": "c2983713-830d-48ed-ba70-728946ebe540",
+        "chatSessionId": "sess_15ee306e-ac00-4fe4-9cf5-f6b7eb185fc2",
+        "timestamp": 1795061529029
+      },
+      {
+        "executionId": "c2983713-830d-48ed-ba70-728946ebe540",
+        "chatSessionId": "sess_15ee306e-ac00-4fe4-9cf5-f6b7eb185fc2",
+        "timestamp": 1795062864250
+      },
+      {
+        "executionId": "c2983713-830d-48ed-ba70-728946ebe540",
+        "chatSessionId": "sess_15ee306e-ac00-4fe4-9cf5-f6b7eb185fc2",
+        "timestamp": 1795062875811
+      }
+    ],
+    "4.4 Write unit tests for MetaDrawer": [
+      {
+        "executionId": "c2983713-830d-48ed-ba70-728946ebe540",
+        "chatSessionId": "sess_15ee306e-ac00-4fe4-9cf5-f6b7eb185fc2",
+        "timestamp": 1795061529079
+      },
+      {
+        "executionId": "c2983713-830d-48ed-ba70-728946ebe540",
+        "chatSessionId": "sess_15ee306e-ac00-4fe4-9cf5-f6b7eb185fc2",
+        "timestamp": 1795062883404
+      }
+    ],
+    "5.1 Identify which route files render meta lists": [
+      {
+        "executionId": "c2983713-830d-48ed-ba70-728946ebe540",
+        "chatSessionId": "sess_15ee306e-ac00-4fe4-9cf5-f6b7eb185fc2",
+        "timestamp": 1795061529124
+      },
+      {
+        "executionId": "c2983713-830d-48ed-ba70-728946ebe540",
+        "chatSessionId": "sess_15ee306e-ac00-4fe4-9cf5-f6b7eb185fc2",
+        "timestamp": 1795062886793
+      }
+    ],
+    "5.2 Add edit button to each meta list item": [
+      {
+        "executionId": "c2983713-830d-48ed-ba70-728946ebe540",
+        "chatSessionId": "sess_15ee306e-ac00-4fe4-9cf5-f6b7eb185fc2",
+        "timestamp": 1795061529177
+      }
+    ],
+    "6.1 Import `useMetas` and filter for completed goals": [
+      {
+        "executionId": "c2983713-830d-48ed-ba70-728946ebe540",
+        "chatSessionId": "sess_15ee306e-ac00-4fe4-9cf5-f6b7eb185fc2",
+        "timestamp": 1795061529230
+      }
+    ],
+    "6.2 Render the banner card": [
+      {
+        "executionId": "c2983713-830d-48ed-ba70-728946ebe540",
+        "chatSessionId": "sess_15ee306e-ac00-4fe4-9cf5-f6b7eb185fc2",
+        "timestamp": 1795061529294
+      }
+    ],
+    "7. Checkpoint — Metas": [
+      {
+        "executionId": "c2983713-830d-48ed-ba70-728946ebe540",
+        "chatSessionId": "sess_15ee306e-ac00-4fe4-9cf5-f6b7eb185fc2",
+        "timestamp": 1795061529338
+      }
+    ],
+    "8.1 Create `drizzle/migrations/0008_sp_wipe_all_data.sql`": [
+      {
+        "executionId": "c2983713-830d-48ed-ba70-728946ebe540",
+        "chatSessionId": "sess_15ee306e-ac00-4fe4-9cf5-f6b7eb185fc2",
+        "timestamp": 1795061529391
+      },
+      {
+        "executionId": "c2983713-830d-48ed-ba70-728946ebe540",
+        "chatSessionId": "sess_15ee306e-ac00-4fe4-9cf5-f6b7eb185fc2",
+        "timestamp": 1795061542054
+      },
+      {
+        "executionId": "c2983713-830d-48ed-ba70-728946ebe540",
+        "chatSessionId": "sess_15ee306e-ac00-4fe4-9cf5-f6b7eb185fc2",
+        "timestamp": 1795062066978
+      }
+    ],
+    "8.2 Write integration test for `sp_wipe_all_data`": [
+      {
+        "executionId": "c2983713-830d-48ed-ba70-728946ebe540",
+        "chatSessionId": "sess_15ee306e-ac00-4fe4-9cf5-f6b7eb185fc2",
+        "timestamp": 1795061529435
+      },
+      {
+        "executionId": "c2983713-830d-48ed-ba70-728946ebe540",
+        "chatSessionId": "sess_15ee306e-ac00-4fe4-9cf5-f6b7eb185fc2",
+        "timestamp": 1795062084977
+      },
+      {
+        "executionId": "c2983713-830d-48ed-ba70-728946ebe540",
+        "chatSessionId": "sess_15ee306e-ac00-4fe4-9cf5-f6b7eb185fc2",
+        "timestamp": 1795062513547
+      }
+    ],
+    "9.1 Refactor `wipeAllData` to use the new RPC": [
+      {
+        "executionId": "c2983713-830d-48ed-ba70-728946ebe540",
+        "chatSessionId": "sess_15ee306e-ac00-4fe4-9cf5-f6b7eb185fc2",
+        "timestamp": 1795061529473
+      },
+      {
+        "executionId": "c2983713-830d-48ed-ba70-728946ebe540",
+        "chatSessionId": "sess_15ee306e-ac00-4fe4-9cf5-f6b7eb185fc2",
+        "timestamp": 1795062525219
+      },
+      {
+        "executionId": "c2983713-830d-48ed-ba70-728946ebe540",
+        "chatSessionId": "sess_15ee306e-ac00-4fe4-9cf5-f6b7eb185fc2",
+        "timestamp": 1795062554495
+      }
+    ],
+    "9.2 Add `wipeAllDataWithUsers` function": [
+      {
+        "executionId": "c2983713-830d-48ed-ba70-728946ebe540",
+        "chatSessionId": "sess_15ee306e-ac00-4fe4-9cf5-f6b7eb185fc2",
+        "timestamp": 1795061529511
+      },
+      {
+        "executionId": "c2983713-830d-48ed-ba70-728946ebe540",
+        "chatSessionId": "sess_15ee306e-ac00-4fe4-9cf5-f6b7eb185fc2",
+        "timestamp": 1795062529010
+      },
+      {
+        "executionId": "c2983713-830d-48ed-ba70-728946ebe540",
+        "chatSessionId": "sess_15ee306e-ac00-4fe4-9cf5-f6b7eb185fc2",
+        "timestamp": 1795062859772
+      }
+    ],
+    "9.3 Write unit tests for the two wipe functions": [
+      {
+        "executionId": "c2983713-830d-48ed-ba70-728946ebe540",
+        "chatSessionId": "sess_15ee306e-ac00-4fe4-9cf5-f6b7eb185fc2",
+        "timestamp": 1795061529552
+      },
+      {
+        "executionId": "c2983713-830d-48ed-ba70-728946ebe540",
+        "chatSessionId": "sess_15ee306e-ac00-4fe4-9cf5-f6b7eb185fc2",
+        "timestamp": 1795062867421
+      },
+      {
+        "executionId": "c2983713-830d-48ed-ba70-728946ebe540",
+        "chatSessionId": "sess_15ee306e-ac00-4fe4-9cf5-f6b7eb185fc2",
+        "timestamp": 1795062878885
+      }
+    ],
+    "10.1 Add mode-selection step to the drawer": [
+      {
+        "executionId": "c2983713-830d-48ed-ba70-728946ebe540",
+        "chatSessionId": "sess_15ee306e-ac00-4fe4-9cf5-f6b7eb185fc2",
+        "timestamp": 1795061529626
+      },
+      {
+        "executionId": "c2983713-830d-48ed-ba70-728946ebe540",
+        "chatSessionId": "sess_15ee306e-ac00-4fe4-9cf5-f6b7eb185fc2",
+        "timestamp": 1795062891182
+      }
+    ],
+    "10.2 Pass selected mode to the correct wipe function in Step 2": [
+      {
+        "executionId": "c2983713-830d-48ed-ba70-728946ebe540",
+        "chatSessionId": "sess_15ee306e-ac00-4fe4-9cf5-f6b7eb185fc2",
+        "timestamp": 1795061529677
+      }
+    ],
+    "11.1 Ensure the WipeDataDrawer trigger is guarded by `isAdmin`": [
+      {
+        "executionId": "c2983713-830d-48ed-ba70-728946ebe540",
+        "chatSessionId": "sess_15ee306e-ac00-4fe4-9cf5-f6b7eb185fc2",
+        "timestamp": 1795061529759
+      }
+    ],
+    "12. Final checkpoint — Limpeza total": [
+      {
+        "executionId": "c2983713-830d-48ed-ba70-728946ebe540",
+        "chatSessionId": "sess_15ee306e-ac00-4fe4-9cf5-f6b7eb185fc2",
+        "timestamp": 1795061529827
+      }
+    ],
+    "1. Fix `sp_estornar_transacao` — remove spurious balance check on revenue reversal": [
+      {
+        "executionId": "c2983713-830d-48ed-ba70-728946ebe540",
+        "chatSessionId": "sess_15ee306e-ac00-4fe4-9cf5-f6b7eb185fc2",
+        "timestamp": 1795062497770
+      }
+    ],
+    "8. Write migration SQL for `sp_wipe_all_data`": [
+      {
+        "executionId": "c2983713-830d-48ed-ba70-728946ebe540",
+        "chatSessionId": "sess_15ee306e-ac00-4fe4-9cf5-f6b7eb185fc2",
+        "timestamp": 1795062513628
+      }
+    ],
+    "3. Add `updateMeta` and realtime subscription to `src/lib/data.ts`": [
+      {
+        "executionId": "c2983713-830d-48ed-ba70-728946ebe540",
+        "chatSessionId": "sess_15ee306e-ac00-4fe4-9cf5-f6b7eb185fc2",
+        "timestamp": 1795062547006
+      }
+    ],
+    "9. Update wipe functions in `src/lib/data.ts`": [
+      {
+        "executionId": "c2983713-830d-48ed-ba70-728946ebe540",
+        "chatSessionId": "sess_15ee306e-ac00-4fe4-9cf5-f6b7eb185fc2",
+        "timestamp": 1795062878949
+      }
+    ]
+  }
+}

@@ -342,6 +342,16 @@ export function useMetas(modulo?: Meta["modulo"]) {
     },
   });
 
+  useEffect(() => {
+    const channel = supabase
+      .channel("metas-" + Math.random().toString(36).slice(2))
+      .on("postgres_changes", { event: "*", schema: "public", table: "metas" }, () => {
+        qc.invalidateQueries({ queryKey: ["metas"] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [qc]);
+
   return modulo ? data.filter((m) => m.modulo === modulo) : data;
 }
 
@@ -359,6 +369,11 @@ export async function addMeta(m: Omit<Meta, "id">) {
 
 export async function deleteMeta(id: string) {
   const { error } = await supabase.from("metas").delete().eq("id", id);
+  if (error) throw error;
+}
+
+export async function updateMeta(id: string, changes: Partial<Pick<Meta, "descricao" | "valor_alvo" | "status">>) {
+  const { error } = await supabase.from("metas").update(changes).eq("id", id);
   if (error) throw error;
 }
 
@@ -697,22 +712,13 @@ const WIPE_TABLES = [
 ] as const;
 
 export async function wipeAllData() {
-  // Verificação server-side: o próprio RLS impede se não for admin,
-  // mas validamos no client também
-  const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) throw new Error("Usuário não autenticado.");
+  const { data, error } = await supabase.rpc('sp_wipe_all_data', { p_include_users: false });
+  if (error) throw new Error(error.message);
+  return data;
+}
 
-  const { data: roles } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", auth.user.id);
-  const isAdmin = (roles ?? []).some((r) => r.role === "admin");
-  if (!isAdmin) throw new Error("Apenas administradores podem executar esta ação.");
-
-  const errors: string[] = [];
-  for (const table of WIPE_TABLES) {
-    const { error } = await supabase.from(table).delete().neq("id", "00000000-0000-0000-0000-000000000000");
-    if (error) errors.push(`${table}: ${error.message}`);
-  }
-  if (errors.length) throw new Error(`Erros ao limpar: ${errors.join("; ")}`);
+export async function wipeAllDataWithUsers() {
+  const { data, error } = await supabase.rpc('sp_wipe_all_data', { p_include_users: true });
+  if (error) throw new Error(error.message);
+  return data;
 }
