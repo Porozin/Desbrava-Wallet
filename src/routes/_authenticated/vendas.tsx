@@ -32,6 +32,7 @@ import {
 import { generatePrintReport } from "@/lib/printReport";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { ProductRecipeDrawer } from "@/components/m3/ProductRecipeDrawer";
+import { PdvGrid } from "@/components/m3/PdvGrid";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/vendas")({
@@ -52,7 +53,7 @@ export const Route = createFileRoute("/_authenticated/vendas")({
   component: Vendas,
 });
 
-type TabView = "vendas" | "produtos" | "avarias";
+type TabView = "vendas" | "pdv" | "produtos" | "avarias";
 
 function Vendas() {
   const allTx = useTransactions();
@@ -137,6 +138,7 @@ function Vendas() {
           value={currentTab}
           onChange={setCurrentTab}
           options={[
+            { value: "pdv", label: "🛒 PDV" },
             { value: "vendas", label: "Caixa & Vendas" },
             { value: "produtos", label: `Catálogo (${produtos.length})` },
             { value: "avarias", label: `Avarias (${avarias.length})` },
@@ -151,6 +153,15 @@ function Vendas() {
           <span className="hidden sm:inline">Extrato PDF</span>
         </button>
       </div>
+
+      {currentTab === "pdv" && (
+        <PdvGrid
+          produtos={produtos}
+          module="vendas"
+          boxId="vendas"
+          defaultIcon="zap"
+        />
+      )}
 
       {currentTab === "vendas" && (
         <>

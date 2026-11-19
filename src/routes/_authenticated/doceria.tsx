@@ -32,6 +32,7 @@ import {
 import { generatePrintReport } from "@/lib/printReport";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { ProductRecipeDrawer } from "@/components/m3/ProductRecipeDrawer";
+import { PdvGrid } from "@/components/m3/PdvGrid";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/doceria")({
@@ -53,7 +54,7 @@ export const Route = createFileRoute("/_authenticated/doceria")({
   component: Doceria,
 });
 
-type TabView = "vendas" | "produtos" | "materias";
+type TabView = "vendas" | "pdv" | "produtos" | "materias";
 
 function Doceria() {
   const allTx = useTransactions();
@@ -134,6 +135,7 @@ function Doceria() {
           value={currentTab}
           onChange={setCurrentTab}
           options={[
+            { value: "pdv", label: "🛒 PDV" },
             { value: "vendas", label: "Caixa & Vendas" },
             { value: "produtos", label: `Doces & Receitas (${produtos.length})` },
             { value: "materias", label: `Insumos (${materiais.length})` },
@@ -148,6 +150,15 @@ function Doceria() {
           <span className="hidden sm:inline">Extrato PDF</span>
         </button>
       </div>
+
+      {currentTab === "pdv" && (
+        <PdvGrid
+          produtos={produtos}
+          module="doceria"
+          boxId="doceria"
+          defaultIcon="cake"
+        />
+      )}
 
       {currentTab === "vendas" && (
         <>
