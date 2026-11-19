@@ -403,7 +403,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // 3. Busca o papel do usuario
-    const { data: roles } = await supabaseUser.from("user_roles").select("role").eq("user_id", user.id);
+    const { data: roles } = await supabaseAdmin.from("user_roles").select("role").eq("user_id", user.id);
     const userRole = roles?.[0]?.role ?? "desbravador";
     const isManager = ["admin", "diretor", "tesoureiro"].includes(userRole);
 
@@ -416,7 +416,7 @@ Deno.serve(async (req: Request) => {
       const result = await executeConfirmedOperation(confirmation_token, user.id, supabaseAdmin);
 
       // Salva no historico
-      await supabaseUser.from("ai_conversations").insert([
+      await supabaseAdmin.from("ai_conversations").insert([
         { user_id: user.id, session_id, role: "user", content: "[Confirmacao de operacao]" },
         {
           user_id: user.id,
@@ -480,8 +480,7 @@ Deno.serve(async (req: Request) => {
 
     if (!geminiRes.ok) {
       const errText = await geminiRes.text();
-      console.error("Gemini error:", errText);
-      return Response.json({ error: "Falha ao chamar o modelo de IA." }, { status: 502, headers: CORS });
+      return Response.json({ error: "Falha ao chamar o modelo de IA.", gemini_status: geminiRes.status, gemini_error: errText.slice(0,500) }, { status: 502, headers: CORS });
     }
 
     const geminiData = await geminiRes.json();
@@ -549,7 +548,7 @@ Deno.serve(async (req: Request) => {
     const operationProposal = pendingOp ? (pendingOp.result as any) : null;
 
     // 12. Salva no historico
-    await supabaseUser.from("ai_conversations").insert([
+    await supabaseAdmin.from("ai_conversations").insert([
       {
         user_id: user.id,
         session_id,
