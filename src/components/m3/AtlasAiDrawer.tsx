@@ -67,6 +67,23 @@ function OperationCard({
   );
 }
 
+
+// Converte markdown basico em JSX sem dependencias externas
+function renderText(text: string) {
+  return text.split('
+').map((line, i) => {
+    // Converte **negrito** em <strong>
+    const parts = line.split(/(\*\*[^*]+\*\*)/g).map((part, j) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return <strong key={j} className="font-bold">{part.slice(2, -2)}</strong>;
+      }
+      // Remove asteriscos soltos e hashes de listas
+      return <span key={j}>{part.replace(/^[*#-]\s+/, '')}</span>;
+    });
+    return <span key={i} className="block leading-relaxed">{parts}</span>;
+  });
+}
+
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -179,7 +196,7 @@ export function AtlasAiDrawer({ open, onOpenChange }: Props) {
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                    <div className="leading-relaxed space-y-0.5">{renderText(msg.content)}</div>
                     {msg.operation_proposal && msg.confirmation_token && (
                       <OperationCard
                         proposal={msg.operation_proposal}
