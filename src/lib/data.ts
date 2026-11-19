@@ -234,10 +234,48 @@ export async function rejectExpenseRequest(transactionId: string, reason: string
 }
 
 export async function reverseTransaction(transactionId: string, reason: string) {
+  // Tenta a RPC oficial (disponível após migration 0004)
   const { data, error } = await supabase.rpc("sp_estornar_transacao", {
     p_transaction_id: transactionId,
     p_reverse_reason: reason,
   });
+
+  // Fallback: se a RPC não existir ainda no banco, faz estorno via insert direto
+  if (error && (error.message.includes("Could not find the function") || error.code === "PGRST202")) {
+    // Busca a transação original
+    const { data: original, error: fetchErr } = await supabase
+      .from("transactions")
+      .select("*")
+      .eq("id", transactionId)
+      .single();
+    if (fetchErr || !original) throw new Error("Transação original não encontrada.");
+
+    // Verifica se já existe um estorno para esta transação
+    const { data: existing } = await supabase
+      .from("transactions")
+      .select("id")
+      .like("description", `[ESTORNO]%`)
+      .like("description", `%${transactionId.slice(0, 8)}%`)
+      .limit(1);
+    if (existing && existing.length > 0) {
+      throw new Error("Esta transação já foi estornada anteriormente.");
+    }
+
+    // Insere lançamento compensatório (tipo invertido)
+    const reverseKind = original.kind === "receita" ? "despesa" : "receita";
+    const { error: insertErr } = await supabase.from("transactions").insert({
+      module: original.module,
+      kind: reverseKind,
+      amount: original.amount,
+      category: original.category || "Estorno",
+      description: `[ESTORNO] ${reason} (ref: ${transactionId.slice(0, 8)})`,
+      date: new Date().toISOString().slice(0, 10),
+      seller: original.seller,
+    });
+    if (insertErr) throw insertErr;
+    return { status: "estornado_fallback" };
+  }
+
   if (error) throw error;
   return data;
 }
@@ -316,6 +354,16 @@ export async function addMeta(m: Omit<Meta, "id">) {
     status: m.status || "aprovada",
     sugerido_por: m.sugerido_por ?? null,
   });
+  if (error) throw error;
+}
+
+export async function deleteMeta(id: string) {
+  const { error } = await supabase.from("metas").delete().eq("id", id);
+  if (error) throw error;
+}
+
+export async function updateMetaStatus(id: string, status: Meta["status"]) {
+  const { error } = await supabase.from("metas").update({ status }).eq("id", id);
   if (error) throw error;
 }
 
@@ -636,4 +684,35 @@ export function useIsAdmin() {
 export function useIsConselheiro() {
   const { data } = useMe();
   return !!data?.roles.includes("conselheiro");
+}
+
+// --- 7. Limpeza Total (Admin-only) ---
+const WIPE_TABLES = [
+  "transactions",
+  "metas",
+  "dividas",
+  "materiais",
+  "produtos",
+  "avarias",
+] as const;
+
+export async function wipeAllData() {
+  // Verificação server-side: o próprio RLS impede se não for admin,
+  // mas validamos no client também
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) throw new Error("Usuário não autenticado.");
+
+  const { data: roles } = await supabase
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", auth.user.id);
+  const isAdmin = (roles ?? []).some((r) => r.role === "admin");
+  if (!isAdmin) throw new Error("Apenas administradores podem executar esta ação.");
+
+  const errors: string[] = [];
+  for (const table of WIPE_TABLES) {
+    const { error } = await supabase.from(table).delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    if (error) errors.push(`${table}: ${error.message}`);
+  }
+  if (errors.length) throw new Error(`Erros ao limpar: ${errors.join("; ")}`);
 }
