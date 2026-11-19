@@ -18,6 +18,7 @@ import {
   FileText,
   Globe,
   Share2,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/m3/AppShell";
@@ -41,6 +42,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { generatePrintReport } from "@/lib/printReport";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { ReportsCenterDrawer } from "@/components/m3/ReportsCenterDrawer";
+import { WipeDataDrawer } from "@/components/m3/WipeDataDrawer";
 
 export const Route = createFileRoute("/_authenticated/mais")({
   head: () => ({
@@ -70,6 +72,7 @@ function Mais() {
   const [dividaDrawerOpen, setDividaDrawerOpen] = useState(false);
   const [usersDrawerOpen, setUsersDrawerOpen] = useState(false);
   const [reportsDrawerOpen, setReportsDrawerOpen] = useState(false);
+  const [wipeDrawerOpen, setWipeDrawerOpen] = useState(false);
   const [backupWebhook, setBackupWebhook] = useState(
     () => localStorage.getItem("gda_backup_webhook") || ""
   );
@@ -304,6 +307,19 @@ function Mais() {
     },
   ];
 
+  // Item exclusivo para Admin — limpeza total
+  const adminItems = isAdmin
+    ? [
+        {
+          icon: Trash2,
+          label: "Limpeza Total do Sistema",
+          sub: "Apagar dados ou dados + usuários — ação irreversível",
+          onClick: () => setWipeDrawerOpen(true),
+          danger: true,
+        },
+      ]
+    : [];
+
   const totalDividasPendentes = dividas
     .filter((d) => d.status === "pendente")
     .reduce((acc, cur) => acc + cur.valor, 0);
@@ -437,6 +453,23 @@ function Mais() {
             </button>
           </li>
         ))}
+        {adminItems.map(({ icon: Icon, label, sub, onClick, danger }) => (
+          <li key={label}>
+            <button
+              onClick={onClick}
+              className="flex min-h-18 w-full items-center gap-4 px-5 py-4 text-left transition-colors active:bg-surface-variant/30 hover:bg-destructive/10"
+            >
+              <div className="p-2.5 rounded-2xl bg-destructive/10 text-destructive">
+                <Icon className="size-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold truncate text-destructive">{label}</p>
+                <p className="text-xs text-muted-foreground mt-0.5 truncate">{sub}</p>
+              </div>
+              <ChevronRight className="size-5 text-muted-foreground shrink-0" />
+            </button>
+          </li>
+        ))}
       </ul>
 
       {/* Rodapé Informativo */}
@@ -518,6 +551,14 @@ function Mais() {
         open={reportsDrawerOpen}
         onOpenChange={setReportsDrawerOpen}
       />
+
+      {/* Drawer: Limpeza Total — exclusivo para Admin */}
+      {isAdmin && (
+        <WipeDataDrawer
+          open={wipeDrawerOpen}
+          onOpenChange={setWipeDrawerOpen}
+        />
+      )}
     </AppShell>
   );
 }
