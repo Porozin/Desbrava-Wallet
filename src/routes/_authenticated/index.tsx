@@ -9,6 +9,7 @@ import {
   Zap,
   Lock,
   Wallet,
+  Trophy,
 } from "lucide-react";
 import { AppShell } from "@/components/m3/AppShell";
 import {
@@ -25,7 +26,7 @@ import {
   summarizeBox,
   CASH_BOX_LABEL,
 } from "@/lib/finance";
-import { useCanRecord, useReservations, useTransactions } from "@/lib/data";
+import { useCanRecord, useReservations, useTransactions, useMetas } from "@/lib/data";
 
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
@@ -52,6 +53,8 @@ function Home() {
   const all = useTransactions();
   const allReservations = useReservations();
   const canRecord = useCanRecord();
+  const todasMetas = useMetas();
+  const metasConcluidas = todasMetas.filter((m) => m.status === "concluida");
 
   const [period, setPeriod] = useState<Period>("all");
   const [transferOpen, setTransferOpen] = useState(false);
@@ -130,6 +133,39 @@ function Home() {
           </div>
         </div>
       </div>
+
+      {/* Banner de Metas Concluídas */}
+      {metasConcluidas.length > 0 && (
+        <div className="rounded-3xl bg-secondary-container p-5 space-y-3 border border-secondary/20">
+          <div className="flex items-center gap-2">
+            <Trophy className="size-5 text-on-secondary-container" />
+            <h2 className="text-sm font-black text-on-secondary-container">
+              Metas Concluídas 🎉
+            </h2>
+            <span className="ml-auto text-xs font-bold px-2.5 py-0.5 rounded-full bg-secondary text-on-secondary">
+              {metasConcluidas.length}
+            </span>
+          </div>
+          <ul className="space-y-1.5">
+            {metasConcluidas.map((m) => (
+              <li key={m.id} className="flex items-center justify-between text-xs">
+                <span className="font-semibold text-on-secondary-container truncate max-w-[70%]">
+                  {m.descricao}
+                </span>
+                <span className="font-black text-on-secondary-container">
+                  {brl(m.valor_alvo)}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <Link
+            to="/clube"
+            className="inline-flex items-center gap-1 text-xs font-bold text-on-secondary-container underline underline-offset-2"
+          >
+            Ver todas as metas →
+          </Link>
+        </div>
+      )}
 
       {/* Visão Rápida dos 3 Caixas Fixos */}
       <div>
