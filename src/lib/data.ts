@@ -233,6 +233,13 @@ export async function rejectExpenseRequest(transactionId: string, reason: string
   return data;
 }
 
+export async function deleteTransaction(transactionId: string) {
+  const { error } = await supabase.rpc("sp_deletar_transacao_admin", {
+    p_transaction_id: transactionId,
+  });
+  if (error) throw new Error(error.message);
+}
+
 export async function reverseTransaction(transactionId: string, reason: string) {
   // Tenta a RPC oficial (disponível após migration 0004)
   const { data, error } = await supabase.rpc("sp_estornar_transacao", {

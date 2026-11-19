@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   AlertTriangle,
   XCircle,
+  Trash2,
   CreditCard,
   Banknote,
   QrCode,
@@ -22,7 +23,7 @@ import {
   type PaymentMethod,
   type Transaction,
 } from "@/lib/finance";
-import { reverseTransaction, useCanRecord } from "@/lib/data";
+import { reverseTransaction, useCanRecord, useIsAdmin, deleteTransaction } from "@/lib/data";
 
 export interface ResponsiveTransactionListProps {
   items: Transaction[];
@@ -46,13 +47,30 @@ export const ResponsiveTransactionList: React.FC<ResponsiveTransactionListProps>
   currentBoxId,
 }) => {
   const canRecord = useCanRecord();
+  const isAdmin = useIsAdmin();
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
   const [reverseReason, setReverseReason] = useState("");
   const [reversing, setReversing] = useState(false);
   const [showReverseConfirm, setShowReverseConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
-  const handleReverse = async () => {
+  const handleDelete = async () => {
     if (!selectedTx) return;
+    setDeleting(true);
+    try {
+      await deleteTransaction(selectedTx.id);
+      toast.success("Movimentação excluída permanentemente.");
+      setShowDeleteConfirm(false);
+      setSelectedTx(null);
+    } catch (err: any) {
+      toast.error(err?.message || "Falha ao excluir movimentação.");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleReverse = async () => {    if (!selectedTx) return;
     if (!reverseReason.trim()) {
       toast.error("Informe a justificativa obrigatória do estorno.");
       return;
@@ -302,7 +320,14 @@ export const ResponsiveTransactionList: React.FC<ResponsiveTransactionListProps>
       {/* Drawer de Detalhes e Estorno */}
       <Drawer
         open={Boolean(selectedTx)}
-        onOpenChange={(open) => !open && setSelectedTx(null)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedTx(null);
+            setShowReverseConfirm(false);
+            setShowDeleteConfirm(false);
+            setReverseReason("");
+          }
+        }}
       >
         <DrawerContent className="rounded-t-3xl bg-surface-container-low max-w-lg mx-auto p-4 pb-8 space-y-4">
           {selectedTx && (
@@ -453,6 +478,45 @@ export const ResponsiveTransactionList: React.FC<ResponsiveTransactionListProps>
                     )}
                   </div>
                 )}
+
+              {/* Exclusão física — apenas Admin */}
+              {isAdmin && selectedTx && (
+                <div className="pt-1">
+                  {!showDeleteConfirm ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowDeleteConfirm(true)}
+                      className="w-full h-10 rounded-2xl border border-destructive/40 text-destructive text-xs font-bold hover:bg-destructive/10 flex items-center justify-center gap-1.5 transition-all"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      Excluir permanentemente (Admin)
+                    </button>
+                  ) : (
+                    <div className="space-y-2 p-3 rounded-2xl bg-destructive/10 border border-destructive/30">
+                      <p className="text-xs font-bold text-destructive">
+                        ⚠️ Exclusão irreversível — sem rastro no histórico. Confirmar?
+                      </p>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setShowDeleteConfirm(false)}
+                          className="flex-1 h-9 rounded-xl border border-outline-variant text-xs font-semibold text-muted-foreground"
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          type="button"
+                          disabled={deleting}
+                          onClick={handleDelete}
+                          className="flex-1 h-9 rounded-xl bg-destructive text-white text-xs font-bold disabled:opacity-50"
+                        >
+                          {deleting ? "Excluindo…" : "Confirmar Exclusão"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </>
           )}
         </DrawerContent>
