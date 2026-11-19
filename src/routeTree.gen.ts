@@ -89,9 +89,23 @@ export interface FileRoutesById {
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/transparencia' | '/clube' | '/doceria' | '/mais' | '/vendas'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/transparencia'
+    | '/clube'
+    | '/doceria'
+    | '/mais'
+    | '/vendas'
   fileRoutesByTo: FileRoutesByTo
-  to: '/auth' | '/transparencia' | '/clube' | '/doceria' | '/mais' | '/vendas' | '/'
+  to:
+    | '/auth'
+    | '/transparencia'
+    | '/clube'
+    | '/doceria'
+    | '/mais'
+    | '/vendas'
+    | '/'
   id:
     | '__root__'
     | '/_authenticated'

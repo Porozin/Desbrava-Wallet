@@ -1,5 +1,17 @@
 import { useState, useEffect, useCallback } from "react";
-import { get, set, del } from "idb-keyval";
+
+// idb-keyval importado dinamicamente para não quebrar SSR
+async function idbGet(key: string): Promise<string | undefined> {
+  if (typeof window === "undefined") return undefined;
+  const { get } = await import("idb-keyval");
+  return get<string>(key);
+}
+
+async function idbSet(key: string, value: string): Promise<void> {
+  if (typeof window === "undefined") return;
+  const { set } = await import("idb-keyval");
+  return set(key, value);
+}
 
 export interface QueuedOperation {
   id: string;
@@ -14,7 +26,7 @@ const IDB_QUEUE_KEY = "gda-offline-queue";
 
 async function loadQueue(): Promise<QueuedOperation[]> {
   try {
-    const raw = await get<string>(IDB_QUEUE_KEY);
+    const raw = await idbGet(IDB_QUEUE_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
@@ -23,7 +35,7 @@ async function loadQueue(): Promise<QueuedOperation[]> {
 
 async function saveQueue(queue: QueuedOperation[]): Promise<void> {
   try {
-    await set(IDB_QUEUE_KEY, JSON.stringify(queue));
+    await idbSet(IDB_QUEUE_KEY, JSON.stringify(queue));
   } catch {
     // Falha silenciosa
   }
