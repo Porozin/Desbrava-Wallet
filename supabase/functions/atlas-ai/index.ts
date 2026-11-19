@@ -364,24 +364,42 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    // 1. Autenticacao — extrai JWT do header
     const authHeader = req.headers.get("authorization");
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+    const publishableKeys = Deno.env.get("SUPABASE_PUBLISHABLE_KEYS") ?? "";
+    const secretKeys = Deno.env.get("SUPABASE_SECRET_KEYS") ?? "";
+    const svcKey = SUPABASE_SERVICE_ROLE_KEY;
+
+    // DEBUG: retorna diagnostico
+    const debug = {
+      has_auth_header: !!authHeader,
+      auth_header_prefix: authHeader ? authHeader.slice(0, 20) : null,
+      supabase_url: SUPABASE_URL ? SUPABASE_URL.slice(0, 40) : "MISSING",
+      has_service_role: !!svcKey,
+      service_role_prefix: svcKey ? svcKey.slice(0, 15) : "MISSING",
+      has_anon_key: !!anonKey,
+      anon_key_prefix: anonKey ? anonKey.slice(0, 15) : "MISSING",
+      has_publishable_keys: !!publishableKeys,
+      publishable_keys_prefix: publishableKeys ? publishableKeys.slice(0, 15) : "MISSING",
+      has_secret_keys: !!secretKeys,
+      has_gemini: !!GEMINI_API_KEY,
+      gemini_prefix: GEMINI_API_KEY ? GEMINI_API_KEY.slice(0, 10) : "MISSING",
+    };
+
     if (!authHeader) {
-      return Response.json({ error: "Nao autenticado." }, { status: 401, headers: CORS });
+      return Response.json({ error: "Nao autenticado.", debug }, { status: 401, headers: CORS });
     }
 
-    // Cliente com JWT do usuario (respeita RLS)
-    const supabaseUser = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY") ?? SUPABASE_SERVICE_ROLE_KEY, {
-      global: { headers: { authorization: authHeader } },
-    });
+    // Tenta autenticar com cada key disponivel
+    const supabaseAdmin = createClient(SUPABASE_URL, svcKey);
 
-    // Cliente com service_role (para operacoes privilegiadas via RPC SECURITY DEFINER)
-    const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    // Extrai JWT puro do header (remove "Bearer ")
+    const jwt = authHeader.replace(/^Bearer /, "").trim();
 
-    // 2. Verifica identidade
-    const { data: { user }, error: authError } = await supabaseUser.auth.getUser();
+    // Valida o JWT usando o cliente admin (service_role pode verificar qualquer token)
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(jwt);
     if (authError || !user) {
-      return Response.json({ error: "Token invalido." }, { status: 401, headers: CORS });
+      return Response.json({ error: "Token invalido.", auth_error: authError?.message, debug }, { status: 401, headers: CORS });
     }
 
     // 3. Busca o papel do usuario
