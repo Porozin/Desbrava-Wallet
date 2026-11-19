@@ -429,6 +429,21 @@ export async function addMaterial(m: Omit<MaterialItem, "id">) {
   if (error) throw error;
 }
 
+export async function updateMaterial(id: string, m: Partial<Omit<MaterialItem, "id">>) {
+  const payload: any = {};
+  if (m.nome !== undefined) payload.nome = m.nome;
+  if (m.quantidade !== undefined) payload.quantidade = m.quantidade;
+  if (m.custo_total !== undefined) payload.custo_total = m.custo_total;
+  if (m.unidade_medida !== undefined) payload.unidade_medida = m.unidade_medida;
+  const { error } = await supabase.from("materiais").update(payload).eq("id", id);
+  if (error) throw error;
+}
+
+export async function deleteMaterial(id: string) {
+  const { error } = await supabase.from("materiais").delete().eq("id", id);
+  if (error) throw error;
+}
+
 // --- 4. Produtos e Ficha Técnica de Ingredientes/Insumos ---
 export interface IngredienteInsumo {
   material_id: string;
@@ -529,6 +544,24 @@ export async function addProduto(p: Omit<Produto, "id">) {
     }
     throw err;
   }
+}
+
+export async function updateProduto(id: string, p: Partial<Omit<Produto, "id">>) {
+  const payload: any = {};
+  if (p.nome !== undefined) payload.nome = p.nome;
+  if (p.preco_venda !== undefined) payload.preco_venda = p.preco_venda;
+  if (p.custo !== undefined) payload.custo = p.custo;
+  if (p.comissao !== undefined) payload.comissao = p.comissao;
+  if (p.modulo !== undefined) payload.modulo = p.modulo;
+  if (p.ingredientes !== undefined) payload.ingredientes = p.ingredientes;
+
+  const { error } = await supabase.from("produtos").update(payload).eq("id", id);
+  if (error) throw error;
+}
+
+export async function deleteProduto(id: string) {
+  const { error } = await supabase.from("produtos").delete().eq("id", id);
+  if (error) throw error;
 }
 
 export interface Avaria {

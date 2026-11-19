@@ -9,6 +9,7 @@ import {
   Plus,
   Search,
   Sparkles,
+  Pencil,
 } from "lucide-react";
 import { AppShell } from "@/components/m3/AppShell";
 import {
@@ -28,6 +29,7 @@ import {
   addMaterial,
   useCanRecord,
   useMe,
+  type Produto,
 } from "@/lib/data";
 import { generatePrintReport } from "@/lib/printReport";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
@@ -70,6 +72,7 @@ function Doceria() {
   const [q, setQ] = useState("");
   const [matDrawerOpen, setMatDrawerOpen] = useState(false);
   const [prodDrawerOpen, setProdDrawerOpen] = useState(false);
+  const [editProduto, setEditProduto] = useState<Produto | undefined>(undefined);
 
   const boxSummary = summarizeBox(allTx, "doceria", boxReservations);
   const { profit, margin } = profitMargin(boxSummary.income, boxSummary.expense);
@@ -293,6 +296,15 @@ function Doceria() {
                       <span className="text-xs text-muted-foreground text-right">
                         Custo Insumos: <strong>{brl(p.custo)}</strong>
                       </span>
+                      {canRecord && (
+                        <button
+                          onClick={() => { setEditProduto(p); setProdDrawerOpen(true); }}
+                          className="p-1.5 rounded-full hover:bg-surface-variant/60 text-muted-foreground hover:text-primary transition-colors"
+                          title="Editar produto"
+                        >
+                          <Pencil className="size-3.5" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 );
@@ -392,8 +404,9 @@ function Doceria() {
       {/* Drawer: Novo Doce & Receita com Insumos */}
       <ProductRecipeDrawer
         open={prodDrawerOpen}
-        onOpenChange={setProdDrawerOpen}
+        onOpenChange={(v) => { setProdDrawerOpen(v); if (!v) setEditProduto(undefined); }}
         modulo="doceria"
+        produto={editProduto}
         onSuccess={refetchProdutos}
       />
     </AppShell>

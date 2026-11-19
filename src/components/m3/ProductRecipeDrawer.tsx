@@ -1,20 +1,23 @@
-import { useState, useId } from "react";
+import { useState, useEffect } from "react";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
-import { Plus, Trash2, PackageCheck, Sparkles, AlertCircle } from "lucide-react";
+import { Plus, Trash2, PackageCheck, Sparkles, AlertCircle, Pencil } from "lucide-react";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 import { brl } from "@/lib/finance";
 import {
   useMateriais,
   addProduto,
-  type MaterialItem,
+  updateProduto,
+  deleteProduto,
+  type Produto,
   type IngredienteInsumo,
-  type Module,
 } from "@/lib/data";
 
 interface ProductRecipeDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   modulo: "doceria" | "vendas";
+  produto?: Produto;        // se fornecido → modo edição
   onSuccess?: () => void;
 }
 
@@ -22,18 +25,36 @@ export function ProductRecipeDrawer({
   open,
   onOpenChange,
   modulo,
+  produto,
   onSuccess,
 }: ProductRecipeDrawerProps) {
+  const qc = useQueryClient();
   const materiais = useMateriais(modulo === "doceria" ? "doceria" : "clube");
+  const isEdit = !!produto;
 
   const [nome, setNome] = useState("");
   const [precoVenda, setPrecoVenda] = useState("");
   const [comissao, setComissao] = useState("");
   const [ingredientes, setIngredientes] = useState<IngredienteInsumo[]>([]);
   const [saving, setSaving] = useState(false);
-
-  // Seleção de novo ingrediente
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [selectedMatId, setSelectedMatId] = useState("");
+
+  // Preenche campos ao abrir em modo edição
+  useEffect(() => {
+    if (open && produto) {
+      setNome(produto.nome);
+      setPrecoVenda(String(produto.preco_venda));
+      setComissao(String(produto.comissao));
+      setIngredientes(produto.ingredientes ?? []);
+    }
+    if (!open) {
+      setNome(""); setPrecoVenda(""); setComissao("");
+      setIngredientes([]); setSelectedMatId("");
+      setConfirmDelete(false);
+    }
+  }, [open, produto]);
 
   const custoTotalIngredientes = ingredientes.reduce((acc, cur) => acc + cur.custo_subtotal, 0);
   const precoVendaNum = Number(precoVenda.replace(",", ".")) || 0;
@@ -93,39 +114,63 @@ export function ProductRecipeDrawer({
     setComissao("");
     setIngredientes([]);
     setSelectedMatId("");
+    setConfirmDelete(false);
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const nomeTrimmed = nome.trim();
-    if (!nomeTrimmed) {
-      toast.error("Informe o nome do produto.");
-      return;
-    }
-    if (precoVendaNum <= 0) {
-      toast.error("Informe um preço de venda maior que zero.");
-      return;
-    }
+    if (!nomeTrimmed) { toast.error("Informe o nome do produto."); return; }
+    if (precoVendaNum <= 0) { toast.error("Informe um preço de venda maior que zero."); return; }
 
     setSaving(true);
     try {
-      await addProduto({
-        nome: nomeTrimmed,
-        preco_venda: precoVendaNum,
-        custo: Number(custoTotalIngredientes.toFixed(2)),
-        comissao: comissaoNum,
-        modulo,
-        ingredientes,
-      });
-
-      toast.success(`Produto "${nomeTrimmed}" cadastrado com sucesso!`);
+      if (isEdit && produto) {
+        await updateProduto(produto.id, {
+          nome: nomeTrimmed,
+          preco_venda: precoVendaNum,
+          custo: Number(custoTotalIngredientes.toFixed(2)),
+          comissao: comissaoNum,
+          modulo,
+          ingredientes,
+        });
+        toast.success(`Produto "${nomeTrimmed}" atualizado!`);
+      } else {
+        await addProduto({
+          nome: nomeTrimmed,
+          preco_venda: precoVendaNum,
+          custo: Number(custoTotalIngredientes.toFixed(2)),
+          comissao: comissaoNum,
+          modulo,
+          ingredientes,
+        });
+        toast.success(`Produto "${nomeTrimmed}" cadastrado!`);
+      }
+      qc.invalidateQueries({ queryKey: ["produtos"] });
       resetForm();
       onOpenChange(false);
       onSuccess?.();
     } catch (err: any) {
-      toast.error(err?.message || "Não foi possível cadastrar o produto.");
+      toast.error(err?.message || "Não foi possível salvar o produto.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!produto) return;
+    setDeleting(true);
+    try {
+      await deleteProduto(produto.id);
+      toast.success(`Produto "${produto.nome}" excluído.`);
+      qc.invalidateQueries({ queryKey: ["produtos"] });
+      resetForm();
+      onOpenChange(false);
+      onSuccess?.();
+    } catch (err: any) {
+      toast.error(err?.message || "Não foi possível excluir o produto.");
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -138,10 +183,12 @@ export function ProductRecipeDrawer({
         <DrawerHeader>
           <DrawerTitle className="text-lg font-black text-foreground flex items-center gap-2">
             <PackageCheck className="size-5 text-primary" />
-            <span>Cadastrar Produto & Ficha Técnica</span>
+            <span>{isEdit ? "Editar Produto" : "Cadastrar Produto & Ficha Técnica"}</span>
           </DrawerTitle>
           <p className="text-xs text-muted-foreground">
-            Vincule os ingredientes/insumos reais em estoque para calcular o custo exato.
+            {isEdit
+              ? "Altere os dados e ingredientes do produto."
+              : "Vincule os ingredientes/insumos reais em estoque para calcular o custo exato."}
           </p>
         </DrawerHeader>
 
@@ -313,8 +360,34 @@ export function ProductRecipeDrawer({
             disabled={saving}
             className="h-12 w-full rounded-2xl bg-primary text-primary-foreground font-bold text-sm disabled:opacity-60 transition-transform active:scale-[0.99] shadow-sm hover:shadow-md"
           >
-            {saving ? "Salvando produto…" : "Salvar Produto & Ficha Técnica"}
+            {saving ? "Salvando…" : isEdit ? "Salvar Alterações" : "Salvar Produto & Ficha Técnica"}
           </button>
+
+          {isEdit && !confirmDelete && (
+            <button
+              type="button"
+              onClick={() => setConfirmDelete(true)}
+              className="h-10 w-full rounded-2xl border border-destructive/40 text-destructive text-sm font-bold hover:bg-destructive/10 flex items-center justify-center gap-2"
+            >
+              <Trash2 className="size-4" /> Excluir Produto
+            </button>
+          )}
+
+          {isEdit && confirmDelete && (
+            <div className="p-3 rounded-2xl bg-destructive/10 border border-destructive/30 space-y-2">
+              <p className="text-xs font-bold text-destructive">Confirmar exclusão permanente?</p>
+              <div className="flex gap-2">
+                <button type="button" onClick={() => setConfirmDelete(false)}
+                  className="flex-1 h-9 rounded-xl border border-outline-variant text-xs font-semibold text-muted-foreground">
+                  Cancelar
+                </button>
+                <button type="button" onClick={handleDelete} disabled={deleting}
+                  className="flex-1 h-9 rounded-xl bg-destructive text-white text-xs font-bold disabled:opacity-50">
+                  {deleting ? "Excluindo…" : "Confirmar"}
+                </button>
+              </div>
+            </div>
+          )}
         </form>
       </DrawerContent>
     </Drawer>
