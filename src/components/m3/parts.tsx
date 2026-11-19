@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { ArrowDownLeft, ArrowUpRight, Plus } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Plus, Tag, Check, X } from "lucide-react";
 import { toast } from "sonner";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
@@ -15,6 +15,7 @@ import {
   type Transaction,
 } from "@/lib/finance";
 import { addTransaction, useCanRecord } from "@/lib/data";
+import { useCategories } from "@/lib/categories";
 
 export { MetricCard } from "./MetricCard";
 export { ResponsiveTransactionList } from "./ResponsiveTransactionList";
@@ -118,6 +119,36 @@ export function NewEntryFab({
   if (!canRecord) return null;
 
   const targetBoxId: CashBoxId = boxId || (module === "clube" ? "geral" : (module as CashBoxId));
+  const { categories, addCategory } = useCategories(targetBoxId);
+
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [newCatInput, setNewCatInput] = useState("");
+
+  const currentCategory = selectedCategory || categories[0] || "Geral";
+
+  function handleCategoryChange(val: string) {
+    if (val === "__new__") {
+      setIsAddingCategory(true);
+      setNewCatInput("");
+    } else {
+      setSelectedCategory(val);
+      setIsAddingCategory(false);
+    }
+  }
+
+  function handleSaveNewCategory() {
+    const trimmed = newCatInput.trim();
+    if (!trimmed) {
+      toast.error("Informe o nome da nova categoria.");
+      return;
+    }
+    const added = addCategory(trimmed);
+    setSelectedCategory(added);
+    setIsAddingCategory(false);
+    setNewCatInput("");
+    toast.success(`Categoria "${added}" adicionada!`);
+  }
 
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -137,7 +168,7 @@ export function NewEntryFab({
         amount,
         description,
         payment_method: paymentMethod,
-        category: String(f.get("category") || "Geral"),
+        category: currentCategory,
         date: String(f.get("date") || new Date().toISOString().slice(0, 10)),
         seller: withSeller ? String(f.get("seller") || "") || undefined : undefined,
       });
@@ -153,7 +184,10 @@ export function NewEntryFab({
   return (
     <>
       <button
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setOpen(true);
+          setIsAddingCategory(false);
+        }}
         aria-label={`Nova movimentação em ${CASH_BOX_LABEL[targetBoxId]}`}
         className="flex h-14 items-center gap-2.5 rounded-2xl bg-primary-container px-5 text-on-primary-container shadow-md transition-all active:scale-95 hover:shadow-lg"
       >
@@ -191,13 +225,52 @@ export function NewEntryFab({
                 className={field}
                 required
               />
-              <input
-                name="category"
-                placeholder="Categoria"
-                className={field}
-                maxLength={30}
-              />
+
+              <div className="relative">
+                <select
+                  value={isAddingCategory ? "__new__" : currentCategory}
+                  onChange={(e) => handleCategoryChange(e.target.value)}
+                  className={field}
+                >
+                  <optgroup label="Categorias Fixas & Salvas">
+                    {categories.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <option value="__new__">➕ Nova Categoria…</option>
+                </select>
+              </div>
             </div>
+
+            {isAddingCategory && (
+              <div className="flex items-center gap-2 p-2 rounded-2xl bg-surface-container-highest border border-primary/40 animate-in fade-in-50 duration-200">
+                <input
+                  type="text"
+                  value={newCatInput}
+                  onChange={(e) => setNewCatInput(e.target.value)}
+                  placeholder="Nome da nova categoria"
+                  className="h-10 flex-1 rounded-xl bg-surface px-3 text-xs text-foreground outline-none border border-outline-variant/40 focus:border-primary"
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={handleSaveNewCategory}
+                  className="h-10 px-3 rounded-xl bg-primary text-primary-foreground text-xs font-bold flex items-center gap-1 shadow-xs"
+                >
+                  <Check className="size-3.5" /> Salvar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsAddingCategory(false)}
+                  className="h-10 px-2 rounded-xl text-muted-foreground hover:text-foreground text-xs"
+                >
+                  <X className="size-4" />
+                </button>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-3">
               <select
                 value={paymentMethod}

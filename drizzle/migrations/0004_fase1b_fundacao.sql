@@ -284,8 +284,8 @@ create policy "tx_select" on public.transactions
   using (
     -- Gestores financeiros: leitura completa (incluindo pendentes, estornadas, quarentena)
     public.is_financial_manager(auth.uid())
-    -- Membros/conselheiros: lançamentos confirmados dos 3 caixas oficiais
-    or (status = 'confirmado' and cash_box_id in ('geral','doceria','vendas'))
+    -- Membros/desbravadores: lançamentos confirmados (transparência total)
+    or status = 'confirmado'
     -- Qualquer um vê suas próprias solicitações/criações
     or created_by = auth.uid()
     or requested_by = auth.uid()

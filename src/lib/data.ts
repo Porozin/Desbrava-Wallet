@@ -359,40 +359,106 @@ export async function addMaterial(m: Omit<MaterialItem, "id">) {
   if (error) throw error;
 }
 
-// --- 4. Produtos e Avarias (Vendas Rápidas) ---
+// --- 4. Produtos e Ficha Técnica de Ingredientes/Insumos ---
+export interface IngredienteInsumo {
+  material_id: string;
+  material_nome: string;
+  quantidade: number;
+  unidade_medida?: string;
+  custo_unitario: number;
+  custo_subtotal: number;
+}
+
 export interface Produto {
   id: string;
   nome: string;
   preco_venda: number;
   custo: number;
   comissao: number;
+  modulo?: "doceria" | "vendas" | "clube";
+  ingredientes?: IngredienteInsumo[];
 }
 
-export function useProdutos() {
-  return useQuery({
-    queryKey: ["produtos"],
+export function useProdutos(modulo?: "doceria" | "vendas" | "clube") {
+  const qc = useQueryClient();
+  const query = useQuery({
+    queryKey: ["produtos", modulo || "all"],
     queryFn: async () => {
       const { data, error } = await supabase.from("produtos").select("*").order("nome");
       if (error) return [];
-      return (data ?? []).map((p) => ({
-        id: p.id,
-        nome: p.nome,
-        preco_venda: Number(p.preco_venda),
-        custo: Number(p.custo),
-        comissao: Number(p.comissao),
-      })) as Produto[];
+      return (data ?? []).map((p: any) => {
+        let ingredientes: IngredienteInsumo[] = [];
+        if (p.ingredientes && Array.isArray(p.ingredientes)) {
+          ingredientes = p.ingredientes;
+        } else if (typeof window !== "undefined") {
+          try {
+            const cached = localStorage.getItem(`gda_prod_ing_${p.id}`) || localStorage.getItem(`gda_prod_ing_${p.nome}`);
+            if (cached) ingredientes = JSON.parse(cached);
+          } catch {}
+        }
+
+        let itemModulo = p.modulo;
+        if (!itemModulo && typeof window !== "undefined") {
+          itemModulo = localStorage.getItem(`gda_prod_mod_${p.id}`) || localStorage.getItem(`gda_prod_mod_${p.nome}`) || "vendas";
+        }
+
+        return {
+          id: p.id,
+          nome: p.nome,
+          preco_venda: Number(p.preco_venda),
+          custo: Number(p.custo),
+          comissao: Number(p.comissao),
+          modulo: itemModulo,
+          ingredientes,
+        } as Produto;
+      });
     },
   });
+
+  const all = query.data ?? [];
+  return {
+    ...query,
+    data: modulo ? all.filter((p) => p.modulo === modulo) : all,
+  };
 }
 
 export async function addProduto(p: Omit<Produto, "id">) {
-  const { error } = await supabase.from("produtos").insert({
+  const payload: any = {
     nome: p.nome,
     preco_venda: p.preco_venda,
     custo: p.custo,
     comissao: p.comissao,
-  });
-  if (error) throw error;
+  };
+  if (p.modulo) payload.modulo = p.modulo;
+  if (p.ingredientes) payload.ingredientes = p.ingredientes;
+
+  try {
+    const { data, error } = await supabase.from("produtos").insert(payload).select().single();
+    if (error) throw error;
+    if (data?.id && typeof window !== "undefined") {
+      if (p.ingredientes) localStorage.setItem(`gda_prod_ing_${data.id}`, JSON.stringify(p.ingredientes));
+      if (p.modulo) localStorage.setItem(`gda_prod_mod_${data.id}`, p.modulo);
+    }
+    return data;
+  } catch (err: any) {
+    // Se falhar por causa de colunas novas modulo ou ingredientes antes de rodar migration, tenta salvar base
+    if (payload.modulo || payload.ingredientes) {
+      const fallbackPayload = {
+        nome: p.nome,
+        preco_venda: p.preco_venda,
+        custo: p.custo,
+        comissao: p.comissao,
+      };
+      const { data: fbData, error: fbError } = await supabase.from("produtos").insert(fallbackPayload).select().single();
+      if (fbError) throw fbError;
+      if (fbData?.id && typeof window !== "undefined") {
+        if (p.ingredientes) localStorage.setItem(`gda_prod_ing_${fbData.id}`, JSON.stringify(p.ingredientes));
+        if (p.modulo) localStorage.setItem(`gda_prod_mod_${fbData.id}`, p.modulo || "vendas");
+      }
+      return fbData;
+    }
+    throw err;
+  }
 }
 
 export interface Avaria {

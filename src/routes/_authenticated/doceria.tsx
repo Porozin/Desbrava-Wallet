@@ -8,6 +8,7 @@ import {
   Package,
   Plus,
   Search,
+  Sparkles,
 } from "lucide-react";
 import { AppShell } from "@/components/m3/AppShell";
 import {
@@ -23,12 +24,14 @@ import {
   useBoxTransactions,
   useReservations,
   useMateriais,
+  useProdutos,
   addMaterial,
   useCanRecord,
   useMe,
 } from "@/lib/data";
 import { generatePrintReport } from "@/lib/printReport";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
+import { ProductRecipeDrawer } from "@/components/m3/ProductRecipeDrawer";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/doceria")({
@@ -50,13 +53,14 @@ export const Route = createFileRoute("/_authenticated/doceria")({
   component: Doceria,
 });
 
-type TabView = "vendas" | "materias";
+type TabView = "vendas" | "produtos" | "materias";
 
 function Doceria() {
   const allTx = useTransactions();
   const boxTx = useBoxTransactions("doceria");
   const boxReservations = useReservations("doceria");
   const materiais = useMateriais("doceria");
+  const { data: produtos = [], refetch: refetchProdutos } = useProdutos("doceria");
   const { data: me } = useMe();
   const canRecord = useCanRecord();
 
@@ -64,6 +68,7 @@ function Doceria() {
   const [kind, setKind] = useState<"all" | "receita" | "despesa" | "transferencia">("all");
   const [q, setQ] = useState("");
   const [matDrawerOpen, setMatDrawerOpen] = useState(false);
+  const [prodDrawerOpen, setProdDrawerOpen] = useState(false);
 
   const boxSummary = summarizeBox(allTx, "doceria", boxReservations);
   const { profit, margin } = profitMargin(boxSummary.income, boxSummary.expense);
@@ -130,7 +135,8 @@ function Doceria() {
           onChange={setCurrentTab}
           options={[
             { value: "vendas", label: "Caixa & Vendas" },
-            { value: "materias", label: `Insumos/Estoque (${materiais.length})` },
+            { value: "produtos", label: `Doces & Receitas (${produtos.length})` },
+            { value: "materias", label: `Insumos (${materiais.length})` },
           ]}
         />
         <button
@@ -196,6 +202,93 @@ function Doceria() {
             empty="Nenhuma movimentação encontrada na Doceria."
           />
         </>
+      )}
+
+      {currentTab === "produtos" && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between px-1">
+            <div>
+              <h2 className="text-base font-bold text-foreground">Cardápio & Fichas Técnicas</h2>
+              <p className="text-xs text-muted-foreground">
+                Doces cadastrados com custo automático calculado a partir dos insumos.
+              </p>
+            </div>
+            {canRecord && (
+              <button
+                onClick={() => setProdDrawerOpen(true)}
+                className="flex items-center gap-1 text-xs font-bold text-primary hover:underline"
+              >
+                <Plus className="size-4" /> Novo Doce
+              </button>
+            )}
+          </div>
+
+          {!produtos.length ? (
+            <div className="p-8 text-center text-muted-foreground bg-surface-container-low rounded-3xl border border-outline-variant/20">
+              Nenhum doce cadastrado no cardápio da doceria.
+            </div>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {produtos.map((p) => {
+                const lucro = p.preco_venda - p.custo - p.comissao;
+                const mg = p.preco_venda > 0 ? (lucro / p.preco_venda) * 100 : 0;
+                return (
+                  <div
+                    key={p.id}
+                    className="p-5 rounded-3xl bg-surface-container-low border border-outline-variant/20 flex flex-col justify-between"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                          <Cake className="size-3.5 text-primary" /> Doce / Sobremesa
+                        </span>
+                        <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                          Margem: {mg.toFixed(0)}%
+                        </span>
+                      </div>
+                      <h3 className="text-base font-bold text-foreground mt-1">{p.nome}</h3>
+
+                      {/* Lista de Ingredientes Vinculados */}
+                      {p.ingredientes && p.ingredientes.length > 0 ? (
+                        <div className="mt-3 p-2.5 rounded-2xl bg-surface-container-highest/50 border border-outline-variant/20 space-y-1">
+                          <p className="text-[10px] font-bold uppercase text-muted-foreground flex items-center gap-1">
+                            <Sparkles className="size-3 text-primary" /> Ingredientes do Estoque:
+                          </p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {p.ingredientes.map((ing) => (
+                              <span
+                                key={ing.material_id}
+                                className="text-[11px] px-2 py-0.5 rounded-lg bg-surface border border-outline-variant/30 text-foreground font-medium"
+                              >
+                                {ing.material_nome} ({ing.quantidade} {ing.unidade_medida || "un"})
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="mt-2 text-xs text-muted-foreground italic">
+                          Custo direto fixado. Sem ingredientes linkados.
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="mt-4 flex items-center justify-between border-t border-outline-variant/20 pt-3">
+                      <div>
+                        <span className="text-base font-black text-income">{brl(p.preco_venda)}</span>
+                        <span className="text-[11px] text-muted-foreground block">
+                          Lucro: {brl(lucro)}
+                        </span>
+                      </div>
+                      <span className="text-xs text-muted-foreground text-right">
+                        Custo Insumos: <strong>{brl(p.custo)}</strong>
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       )}
 
       {currentTab === "materias" && (
@@ -284,6 +377,14 @@ function Doceria() {
           </form>
         </DrawerContent>
       </Drawer>
+
+      {/* Drawer: Novo Doce & Receita com Insumos */}
+      <ProductRecipeDrawer
+        open={prodDrawerOpen}
+        onOpenChange={setProdDrawerOpen}
+        modulo="doceria"
+        onSuccess={refetchProdutos}
+      />
     </AppShell>
   );
 }

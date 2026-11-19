@@ -8,6 +8,7 @@ import {
   Package,
   Printer,
   Search,
+  Sparkles,
 } from "lucide-react";
 import { AppShell } from "@/components/m3/AppShell";
 import {
@@ -24,13 +25,13 @@ import {
   useReservations,
   useProdutos,
   useAvarias,
-  addProduto,
   addAvaria,
   useCanRecord,
   useMe,
 } from "@/lib/data";
 import { generatePrintReport } from "@/lib/printReport";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
+import { ProductRecipeDrawer } from "@/components/m3/ProductRecipeDrawer";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/vendas")({
@@ -57,7 +58,7 @@ function Vendas() {
   const allTx = useTransactions();
   const boxTx = useBoxTransactions("vendas");
   const boxReservations = useReservations("vendas");
-  const { data: produtos = [] } = useProdutos();
+  const { data: produtos = [], refetch: refetchProdutos } = useProdutos("vendas");
   const { data: avarias = [] } = useAvarias();
   const { data: me } = useMe();
   const canRecord = useCanRecord();
@@ -80,26 +81,6 @@ function Vendas() {
         t.category.toLowerCase().includes(q.toLowerCase()) ||
         (t.seller && t.seller.toLowerCase().includes(q.toLowerCase())))
   );
-
-  async function handleAddProduto(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const f = new FormData(e.currentTarget);
-    const nome = String(f.get("nome") || "").trim();
-    const preco = Number(String(f.get("preco_venda")).replace(",", "."));
-    const custo = Number(String(f.get("custo")).replace(",", ".")) || 0;
-    const comissao = Number(String(f.get("comissao")).replace(",", ".")) || 0;
-    if (!nome || preco <= 0) {
-      toast.error("Informe nome e preço de venda válido.");
-      return;
-    }
-    try {
-      await addProduto({ nome, preco_venda: preco, custo, comissao });
-      toast.success("Produto cadastrado com sucesso!");
-      setProdDrawerOpen(false);
-    } catch {
-      toast.error("Falha ao salvar produto.");
-    }
-  }
 
   async function handleAddAvaria(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -257,6 +238,25 @@ function Vendas() {
                       <Package className="size-3.5 text-primary" /> Item de Venda
                     </span>
                     <h3 className="text-base font-bold text-foreground mt-1">{p.nome}</h3>
+
+                    {/* Insumos vinculados */}
+                    {p.ingredientes && p.ingredientes.length > 0 && (
+                      <div className="mt-2.5 p-2 rounded-xl bg-surface-container-highest/50 border border-outline-variant/20 space-y-1">
+                        <p className="text-[10px] font-bold uppercase text-muted-foreground flex items-center gap-1">
+                          <Sparkles className="size-3 text-primary" /> Insumos Vinculados:
+                        </p>
+                        <div className="flex flex-wrap gap-1">
+                          {p.ingredientes.map((ing) => (
+                            <span
+                              key={ing.material_id}
+                              className="text-[10px] px-2 py-0.5 rounded-md bg-surface border border-outline-variant/30 text-foreground"
+                            >
+                              {ing.material_nome} ({ing.quantidade} {ing.unidade_medida || "un"})
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <div className="mt-4 flex items-center justify-between border-t border-outline-variant/20 pt-3">
                     <span className="text-base font-black text-income">{brl(p.preco_venda)}</span>
@@ -312,49 +312,13 @@ function Vendas() {
         </div>
       )}
 
-      {/* Drawer: Novo Produto */}
-      <Drawer open={prodDrawerOpen} onOpenChange={setProdDrawerOpen}>
-        <DrawerContent className="rounded-t-3xl bg-surface-container-low max-w-lg mx-auto">
-          <DrawerHeader>
-            <DrawerTitle className="text-lg font-black text-foreground">Novo Produto no Catálogo</DrawerTitle>
-          </DrawerHeader>
-          <form onSubmit={handleAddProduto} className="space-y-4 px-4 pb-8">
-            <input
-              name="nome"
-              placeholder="Nome do produto (ex: Caneta GDA)"
-              className="h-14 w-full rounded-2xl border border-outline-variant/60 bg-surface px-4 text-sm outline-none focus:border-2 focus:border-primary"
-              required
-            />
-            <div className="grid grid-cols-3 gap-2">
-              <input
-                name="preco_venda"
-                inputMode="decimal"
-                placeholder="Preço Venda (R$)"
-                className="h-14 w-full rounded-2xl border border-outline-variant/60 bg-surface px-3 text-xs outline-none focus:border-2 focus:border-primary font-bold"
-                required
-              />
-              <input
-                name="custo"
-                inputMode="decimal"
-                placeholder="Custo (R$)"
-                className="h-14 w-full rounded-2xl border border-outline-variant/60 bg-surface px-3 text-xs outline-none focus:border-2 focus:border-primary"
-              />
-              <input
-                name="comissao"
-                inputMode="decimal"
-                placeholder="Comissão (R$)"
-                className="h-14 w-full rounded-2xl border border-outline-variant/60 bg-surface px-3 text-xs outline-none focus:border-2 focus:border-primary"
-              />
-            </div>
-            <button
-              type="submit"
-              className="h-12 w-full rounded-2xl bg-primary text-primary-foreground font-bold text-sm"
-            >
-              Salvar Produto
-            </button>
-          </form>
-        </DrawerContent>
-      </Drawer>
+      {/* Drawer: Novo Produto & Ficha Técnica */}
+      <ProductRecipeDrawer
+        open={prodDrawerOpen}
+        onOpenChange={setProdDrawerOpen}
+        modulo="vendas"
+        onSuccess={refetchProdutos}
+      />
 
       {/* Drawer: Nova Avaria */}
       <Drawer open={avariaDrawerOpen} onOpenChange={setAvariaDrawerOpen}>

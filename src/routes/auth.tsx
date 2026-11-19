@@ -1,10 +1,14 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Wallet, Loader2 } from "lucide-react";
+import { Wallet, Loader2, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { recordLoginSession, validateSevenDaySession } from "@/lib/authSession";
 
 export const Route = createFileRoute("/auth")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    expired: typeof search.expired === "string" ? search.expired : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Entrar — GDACaixa 2027" },
@@ -18,13 +22,24 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
+  const search = Route.useSearch();
   const [busy, setBusy] = useState(false);
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
+    if (search.expired === "1") {
+      toast.info("Sua sessão expirou após 7 dias. Faça login novamente para continuar.", {
+        duration: 8000,
+        id: "session-expired-notice",
+      });
+    }
+  }, [search.expired]);
+
+  useEffect(() => {
     // 1. Escuta alterações de estado de autenticação (ex: quando o callback do Google processa o token)
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
+        recordLoginSession();
         setBusy(true);
         navigate({ to: "/", replace: true });
       } else {
@@ -32,9 +47,9 @@ function AuthPage() {
       }
     });
 
-    // 2. Checa se já existe sessão ativa
-    supabase.auth.getSession().then(({ data }) => {
-      if (data?.session?.user) {
+    // 2. Checa se já existe sessão ativa e válida dentro do limite de 7 dias
+    validateSevenDaySession().then(({ valid, expired }) => {
+      if (valid) {
         navigate({ to: "/", replace: true });
       } else {
         setChecking(false);
@@ -65,6 +80,8 @@ function AuthPage() {
         console.error("Erro no login Supabase:", error);
         toast.error(`Falha ao entrar com Google: ${error.message}`);
         setBusy(false);
+      } else {
+        recordLoginSession();
       }
     } catch (err) {
       console.error("Exceção no login:", err);

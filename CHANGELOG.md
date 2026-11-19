@@ -2,6 +2,27 @@
 
 Todas as alterações notáveis deste projeto serão documentadas neste arquivo.
 
+## [0.4.0] - 2026-11-18
+### Persistência de Sessão (7 Dias), Transparência RLS, Categorias Fixas e Ficha Técnica de Produtos
+#### Adicionado
+- **Persistência de Sessão e Janela Estrita de 7 Dias (`src/lib/authSession.ts`):**
+  - Implementação de rastreamento de início de sessão (`gda_session_started_at`) com persistência contínua por 7 dias.
+  - Guarda de rota no `_authenticated/route.tsx` e `__root.tsx`: após 7 dias corridos de sessão, o usuário é desconectado com segurança e redirecionado para `/auth?expired=1` com aviso explícito para relogar.
+  - `src/routes/auth.tsx` atualizado para receber o aviso de sessão expirada e registrar a nova janela de 7 dias no login com Google.
+- **Transparência e Correção de Visibilidade para Desbravadores:**
+  - Criação da migration `drizzle/migrations/0005_desbravador_leitura_transacoes.sql`:
+    - Remove a política RLS restritiva (`Cash team sees all, others see own`) que impedia desbravadores de visualizarem transações não criadas por eles.
+    - Garante permissão `SELECT` para todos os usuários autenticados em `transactions`, `transaction_reservations`, `materiais`, `produtos` e `avarias`.
+    - Preserva estritamente as travas de gravação (apenas Admin, Diretor e Tesoureiro podem criar/editar/estornar movimentações e reservas).
+  - Atualização da migration `0004_fase1b_fundacao.sql` para garantir transparência total no `tx_select`.
+- **Sistema de Categorias Fixas e Adição Dinâmica (`src/lib/categories.ts`):**
+  - Catálogo de categorias padrão/fixas por caixa financeiro (`geral`, `doceria`, `vendas`).
+  - Funcionalidade para cadastrar novas categorias dinamicamente pelo próprio formulário de lançamento (`NewEntryFab` em `src/components/m3/parts.tsx`), persistidas no armazenamento local (`localStorage`) e selecionáveis em dropdown.
+- **Ficha Técnica e Insumos Linkados a Produtos (`src/components/m3/ProductRecipeDrawer.tsx`):**
+  - Vínculo real entre produtos cadastrados e os insumos/ingredientes em estoque na tabela `materiais`.
+  - Cálculo automático e em tempo real do custo unitário do produto a partir dos ingredientes vinculados, margem de lucro e comissão do desbravador.
+  - Integração do cardápio e produtos em `src/routes/_authenticated/doceria.tsx` (nova aba de Cardápio/Doces com ficha técnica) e em `src/routes/_authenticated/vendas.tsx`.
+
 ## [0.3.0] - 2026-11-18
 ### Fase 2 — Caixas e Movimentações (Concluída)
 #### Adicionado
