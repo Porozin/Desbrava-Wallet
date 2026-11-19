@@ -1,4 +1,6 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
+import { idbPersister } from "@/lib/queryPersister";
 import {
   Outlet,
   Link,
@@ -146,10 +148,12 @@ function RootComponent() {
   }, [router, queryClient]);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{ persister: idbPersister }}
+    >
       <Outlet />
       <Toaster position="top-center" />
-    </QueryClientProvider>
+    </PersistQueryClientProvider>
   );
 }

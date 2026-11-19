@@ -19,6 +19,7 @@ import {
   TransferDrawer,
 } from "@/components/m3/parts";
 import { MonthlyChart } from "@/components/m3/MonthlyChart";
+import { PwaInstallBanner } from "@/components/m3/PwaInstallBanner";
 import {
   brl,
   summarize,
@@ -78,6 +79,7 @@ function Home() {
 
   return (
     <AppShell title="Dashboard Financeiro">
+      <PwaInstallBanner />
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <ChipGroup
           value={period}

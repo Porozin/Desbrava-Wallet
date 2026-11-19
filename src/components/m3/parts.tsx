@@ -115,6 +115,7 @@ export function NewEntryFab({
   const [kind, setKind] = useState<Kind>("receita");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("dinheiro");
   const [saving, setSaving] = useState(false);
+  const [amountValue, setAmountValue] = useState("");
   const canRecord = useCanRecord();
   if (!canRecord) return null;
 
@@ -153,8 +154,7 @@ export function NewEntryFab({
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
-    const amount = Number(String(f.get("amount")).replace(",", "."));
-    const description = String(f.get("description") ?? "").trim();
+    const amount = Number(String(f.get("amount")).replace(",", "."));    const description = String(f.get("description") ?? "").trim();
     if (!description || !(amount > 0)) {
       toast.error("Informe descrição e um valor maior que zero.");
       return;
@@ -194,7 +194,7 @@ export function NewEntryFab({
         <Plus className="size-6" />
         <span className="text-sm font-bold">Nova</span>
       </button>
-      <Drawer open={open} onOpenChange={setOpen}>
+      <Drawer open={open} onOpenChange={(v) => { setOpen(v); if (!v) setAmountValue(""); }}>
         <DrawerContent className="rounded-t-3xl bg-surface-container-low max-w-lg mx-auto">
           <DrawerHeader>
             <DrawerTitle className="text-lg font-black tracking-tight text-foreground">
@@ -218,13 +218,33 @@ export function NewEntryFab({
               required
             />
             <div className="grid grid-cols-2 gap-3">
-              <input
-                name="amount"
-                inputMode="decimal"
-                placeholder="Valor (R$)"
-                className={field}
-                required
-              />
+              <div className="space-y-2">
+                <input
+                  name="amount"
+                  inputMode="decimal"
+                  placeholder="Valor (R$)"
+                  value={amountValue}
+                  onChange={(e) => setAmountValue(e.target.value)}
+                  className={field}
+                  required
+                />
+                {/* Atalhos numéricos rápidos */}
+                <div className="flex gap-1.5">
+                  {[5, 10, 20, 50, 100].map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => setAmountValue((prev) => {
+                        const current = parseFloat(prev.replace(",", ".")) || 0;
+                        return String((current + v).toFixed(2));
+                      })}
+                      className="flex-1 h-8 rounded-xl bg-surface-container-high text-xs font-bold text-foreground hover:bg-secondary-container hover:text-on-secondary-container transition-all"
+                    >
+                      +{v}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
               <div className="relative">
                 <select

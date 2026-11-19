@@ -1,8 +1,9 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { Home, Landmark, Cake, Zap, UserCircle2, type LucideIcon } from "lucide-react";
+import { Home, Landmark, Cake, Zap, UserCircle2, type LucideIcon, Wifi, WifiOff } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { BottomNav } from "./BottomNav";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 const NAV: { to: "/" | "/clube" | "/doceria" | "/vendas" | "/mais"; label: string; icon: LucideIcon }[] = [
   { to: "/", label: "Início", icon: Home },
@@ -14,6 +15,7 @@ const NAV: { to: "/" | "/clube" | "/doceria" | "/vendas" | "/mais"; label: strin
 
 export function AppShell({ title, children, fab }: { title: string; children: ReactNode; fab?: ReactNode }) {
   const { pathname } = useLocation();
+  const online = useOnlineStatus();
   return (
     <div className="min-h-dvh bg-surface lg:pl-24 transition-colors">
       {/* Navigation rail (expanded screens) */}
@@ -42,7 +44,24 @@ export function AppShell({ title, children, fab }: { title: string; children: Re
       </nav>
 
       <header className="sticky top-0 z-20 bg-surface/90 px-4 pb-3 pt-5 backdrop-blur-md border-b border-outline-variant/10">
-        <p className="label-medium text-muted-foreground">Guerreiros do Alto</p>
+        <div className="flex items-center justify-between">
+          <p className="label-medium text-muted-foreground">Guerreiros do Alto</p>
+          {/* Chip Online/Offline */}
+          <span
+            className={cn(
+              "flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold transition-all",
+              online
+                ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300"
+                : "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300"
+            )}
+          >
+            {online ? (
+              <><Wifi className="size-3" /> Online</>
+            ) : (
+              <><WifiOff className="size-3" /> Offline</>
+            )}
+          </span>
+        </div>
         <h1 className="headline-small font-black tracking-tight">{title}</h1>
       </header>
 
