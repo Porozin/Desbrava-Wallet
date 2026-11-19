@@ -137,6 +137,23 @@ export async function addTransaction(t: Omit<Transaction, "id">) {
   const amountCents = t.amount_cents ?? toCents(t.amount);
   const cashBoxId = t.cash_box_id || (t.module === "clube" ? "geral" : t.module);
 
+  // Se offline, enfileira localmente e retorna sem chamar o servidor
+  if (typeof navigator !== "undefined" && !navigator.onLine) {
+    const { get, set } = await import("idb-keyval");
+    const IDB_QUEUE_KEY = "gda-offline-queue";
+    const raw = await get<string>(IDB_QUEUE_KEY);
+    const queue = raw ? JSON.parse(raw) : [];
+    queue.push({
+      id: clientMutationId,
+      type: "transaction",
+      payload: { ...t, client_mutation_id: clientMutationId, amount_cents: amountCents, cash_box_id: cashBoxId },
+      createdAt: new Date().toISOString(),
+      status: "pending",
+    });
+    await set(IDB_QUEUE_KEY, JSON.stringify(queue));
+    return clientMutationId;
+  }
+
   // Tentativa primária: RPC oficial segura com idempotência (Fase 1B)
   const { data: rpcData, error: rpcError } = await supabase.rpc("sp_registrar_transacao_oficial", {
     p_client_mutation_id: clientMutationId,
