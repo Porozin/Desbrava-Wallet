@@ -340,8 +340,9 @@ function Vendas() {
       {/* Drawer: Novo Produto & Ficha Técnica */}
       <ProductRecipeDrawer
         open={prodDrawerOpen}
-        onOpenChange={setProdDrawerOpen}
+        onOpenChange={(v) => { setProdDrawerOpen(v); if (!v) setEditProduto(undefined); }}
         modulo="vendas"
+        produto={editProduto}
         onSuccess={refetchProdutos}
       />
 
