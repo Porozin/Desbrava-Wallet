@@ -55,7 +55,10 @@ export function generatePrintReport({
   const rowsHtml = txs.length
     ? txs
         .map((t) => {
+          const isTransfer = t.kind === "transferencia";
           const isIncome = t.kind === "receita";
+          const color = isTransfer ? "#2563eb" : isIncome ? "#15803d" : "#b91c1c";
+          const sign = isTransfer ? "⇄ " : isIncome ? "+" : "−";
           return `
           <tr>
             <td style="padding: 6px 8px; border-bottom: 1px solid #e5e7eb; font-size: 11px;">
@@ -66,11 +69,10 @@ export function generatePrintReport({
             </td>
             <td style="padding: 6px 8px; border-bottom: 1px solid #e5e7eb; font-size: 11px;">
               ${t.description}${t.seller ? ` <span style="color:#6b7280">(${t.seller})</span>` : ""}
+              ${t.destination_cash_box_id ? ` <span style="color:#2563eb; font-size:10px;">[Transf. → ${t.destination_cash_box_id}]</span>` : ""}
             </td>
-            <td style="padding: 6px 8px; border-bottom: 1px solid #e5e7eb; font-size: 11px; text-align: right; font-weight: 600; color: ${
-              isIncome ? "#15803d" : "#b91c1c"
-            };">
-              ${isIncome ? "+" : "-"}${brl(t.amount)}
+            <td style="padding: 6px 8px; border-bottom: 1px solid #e5e7eb; font-size: 11px; text-align: right; font-weight: 600; color: ${color};">
+              ${sign}${brl(t.amount)}
             </td>
           </tr>`;
         })

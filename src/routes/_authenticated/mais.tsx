@@ -19,7 +19,7 @@ import {
 import { toast } from "sonner";
 import { AppShell } from "@/components/m3/AppShell";
 import { MetricCard } from "@/components/m3/parts";
-import { MODULE_LABEL, brl, summarize } from "@/lib/finance";
+import { MODULE_LABEL, CASH_BOX_LABEL, CashBoxId, brl, summarize } from "@/lib/finance";
 import {
   ROLE_LABEL,
   Role,
@@ -79,14 +79,17 @@ function Mais() {
   // 1. Exportação em Planilha CSV Completa
   function exportCsv() {
     const rows = [
-      ["Data", "Módulo", "Tipo", "Categoria", "Descrição", "Vendedor", "Valor"],
+      ["Data", "Caixa", "Módulo", "Tipo", "Categoria", "Descrição", "Vendedor", "Forma Pagamento", "Situação", "Valor"],
       ...all.map((t) => [
         t.date,
+        CASH_BOX_LABEL[t.cash_box_id || (t.module === "clube" ? "geral" : (t.module as CashBoxId))] || t.module,
         MODULE_LABEL[t.module],
         t.kind,
         t.category,
         t.description,
         t.seller ?? "",
+        t.payment_method ?? "dinheiro",
+        t.status ?? "confirmado",
         t.amount.toFixed(2).replace(".", ","),
       ]),
     ];

@@ -1,10 +1,32 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Cake, TrendingUp, ShoppingBag, Receipt, Printer, Package, Plus } from "lucide-react";
+import {
+  Cake,
+  TrendingUp,
+  ShoppingBag,
+  Printer,
+  Package,
+  Plus,
+  Search,
+} from "lucide-react";
 import { AppShell } from "@/components/m3/AppShell";
-import { ChipGroup, MetricCard, NewEntryFab, ResponsiveTransactionList } from "@/components/m3/parts";
-import { brl, profitMargin, summarize } from "@/lib/finance";
-import { useTransactions, useMateriais, addMaterial, useCanRecord, useMe } from "@/lib/data";
+import {
+  ChipGroup,
+  MetricCard,
+  NewEntryFab,
+  ResponsiveTransactionList,
+  CashBoxHeaderCard,
+} from "@/components/m3/parts";
+import { brl, profitMargin, summarizeBox } from "@/lib/finance";
+import {
+  useTransactions,
+  useBoxTransactions,
+  useReservations,
+  useMateriais,
+  addMaterial,
+  useCanRecord,
+  useMe,
+} from "@/lib/data";
 import { generatePrintReport } from "@/lib/printReport";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { toast } from "sonner";
@@ -12,10 +34,17 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/_authenticated/doceria")({
   head: () => ({
     meta: [
-      { title: "GDACaixa 2027 — Doceria" },
-      { name: "description", content: "Vendas, custos, ingredientes e margem de lucro da doceria." },
-      { property: "og:title", content: "GDACaixa 2027 — Doceria" },
-      { property: "og:description", content: "Vendas, custos, ingredientes e margem de lucro da doceria." },
+      { title: "GDACaixa 2027 — Caixa da Doceria" },
+      {
+        name: "description",
+        content:
+          "Vendas de doces, compras de ingredientes, reservas e transferências da doceria.",
+      },
+      { property: "og:title", content: "GDACaixa 2027 — Caixa da Doceria" },
+      {
+        property: "og:description",
+        content: "Gestão do Caixa da Doceria do Clube Guerreiros do Alto.",
+      },
     ],
   }),
   component: Doceria,
@@ -24,17 +53,28 @@ export const Route = createFileRoute("/_authenticated/doceria")({
 type TabView = "vendas" | "materias";
 
 function Doceria() {
-  const items = useTransactions("doceria");
+  const allTx = useTransactions();
+  const boxTx = useBoxTransactions("doceria");
+  const boxReservations = useReservations("doceria");
   const materiais = useMateriais("doceria");
   const { data: me } = useMe();
   const canRecord = useCanRecord();
 
   const [currentTab, setCurrentTab] = useState<TabView>("vendas");
+  const [kind, setKind] = useState<"all" | "receita" | "despesa" | "transferencia">("all");
+  const [q, setQ] = useState("");
   const [matDrawerOpen, setMatDrawerOpen] = useState(false);
 
-  const s = summarize(items);
-  const { profit, margin } = profitMargin(s.income, s.expense);
+  const boxSummary = summarizeBox(allTx, "doceria", boxReservations);
+  const { profit, margin } = profitMargin(boxSummary.income, boxSummary.expense);
   const custoTotalMaterias = materiais.reduce((acc, cur) => acc + cur.custo_total, 0);
+
+  const items = boxTx.filter(
+    (t) =>
+      (kind === "all" || t.kind === kind) &&
+      (t.description.toLowerCase().includes(q.toLowerCase()) ||
+        t.category.toLowerCase().includes(q.toLowerCase()))
+  );
 
   async function handleAddMaterial(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -64,12 +104,15 @@ function Doceria() {
   function handlePrint() {
     generatePrintReport({
       module: "doceria",
-      title: "Extrato Financeiro — Doceria do Clube",
+      title: "Extrato Oficial — Caixa da Doceria",
       responsible: me?.name || "Responsável Doceria",
-      transactions: items,
+      transactions: boxTx,
       additionalStats: [
-        { label: "Margem de Lucro", value: `${(margin * 100).toFixed(0)}%` },
-        { label: "Custo com Insumos Cadastrados", value: brl(custoTotalMaterias) },
+        { label: "Saldo Disponível", value: brl(boxSummary.available) },
+        { label: "Saldo Reservado", value: brl(boxSummary.reserved) },
+        { label: "Margem de Lucro Bruta", value: `${(margin * 100).toFixed(0)}%` },
+        { label: "Transferências Enviadas (Repasses)", value: `−${brl(boxSummary.transfers_out)}`, isNegative: true },
+        { label: "Transferências Recebidas", value: `+${brl(boxSummary.transfers_in)}` },
       ],
       signatures: [
         { role: "Diretor(a) do Clube" },
@@ -79,15 +122,15 @@ function Doceria() {
   }
 
   return (
-    <AppShell title="Doceria" fab={<NewEntryFab module="doceria" />}>
+    <AppShell title="Doceria" fab={<NewEntryFab module="doceria" boxId="doceria" />}>
       {/* Abas Secundárias M3 */}
       <div className="flex gap-2">
         <ChipGroup
           value={currentTab}
           onChange={setCurrentTab}
           options={[
-            { value: "vendas", label: "Vendas & Custos" },
-            { value: "materias", label: `Ingredientes/Insumos (${materiais.length})` },
+            { value: "vendas", label: "Caixa & Vendas" },
+            { value: "materias", label: `Insumos/Estoque (${materiais.length})` },
           ]}
         />
         <button
@@ -102,51 +145,68 @@ function Doceria() {
 
       {currentTab === "vendas" && (
         <>
-          <MetricCard
-            variant="tertiary"
-            title="Lucro Líquido"
-            value={brl(profit)}
-            subtitle={`Margem de lucratividade de ${(margin * 100).toFixed(0)}% sobre vendas`}
-            icon={TrendingUp}
-          />
+          {/* Card Central com Saldos (Disponível, Contábil e Reservas) */}
+          <CashBoxHeaderCard boxId="doceria" summary={boxSummary} />
 
+          {/* Métricas de Performance da Doceria */}
           <div className="grid grid-cols-2 gap-3">
             <MetricCard
               variant="filled"
-              title="Faturamento"
-              value={brl(s.income)}
-              icon={ShoppingBag}
-              tone="income"
+              title="Lucro Operacional"
+              value={brl(profit)}
+              subtitle={`Margem de ${(margin * 100).toFixed(0)}%`}
+              icon={TrendingUp}
+              tone={profit >= 0 ? "income" : "expense"}
             />
             <MetricCard
               variant="filled"
-              title="Custos Totais"
-              value={brl(s.expense)}
-              icon={Receipt}
-              tone="expense"
+              title="Repasses Feitos"
+              value={brl(boxSummary.transfers_out)}
+              subtitle="Transferido para outros caixas"
+              icon={ShoppingBag}
             />
           </div>
 
+          {/* Busca e Filtros */}
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-muted-foreground" />
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Buscar por item, doce ou categoria…"
+              className="h-14 w-full rounded-2xl bg-surface-container-high/60 pl-12 pr-4 text-sm text-foreground outline-none border border-outline-variant/30 focus:border-2 focus:border-primary transition-all"
+            />
+          </div>
+
+          <ChipGroup
+            value={kind}
+            onChange={setKind}
+            options={[
+              { value: "all", label: "Todas" },
+              { value: "receita", label: "Vendas (+)" },
+              { value: "despesa", label: "Custos (−)" },
+              { value: "transferencia", label: "Transferências" },
+            ]}
+          />
+
           <ResponsiveTransactionList
             items={items}
-            title="Movimentações da Doceria"
-            empty="Nenhuma movimentação da doceria registrada ainda."
+            currentBoxId="doceria"
+            title="Histórico de Movimentações — Doceria"
+            empty="Nenhuma movimentação encontrada na Doceria."
           />
         </>
       )}
 
       {currentTab === "materias" && (
         <div className="space-y-4">
-          <MetricCard
-            variant="filled"
-            title="Total em Ingredientes e Embalagens"
-            value={brl(custoTotalMaterias)}
-            subtitle={`${materiais.length} insumos catalogados`}
-            icon={Package}
-          />
-
           <div className="flex items-center justify-between px-1">
-            <h2 className="text-base font-bold text-foreground">Insumos e Embalagens</h2>
+            <div>
+              <h2 className="text-base font-bold text-foreground">Insumos & Ingredientes</h2>
+              <p className="text-xs text-muted-foreground">
+                Total investido em estoque: <strong className="text-foreground">{brl(custoTotalMaterias)}</strong>
+              </p>
+            </div>
             {canRecord && (
               <button
                 onClick={() => setMatDrawerOpen(true)}
@@ -157,41 +217,70 @@ function Doceria() {
             )}
           </div>
 
-          <div className="divide-y divide-outline-variant/20 rounded-3xl bg-surface-container-low border border-outline-variant/20 overflow-hidden">
-            {materiais.map((mat) => (
-              <div key={mat.id} className="p-4 flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-bold text-foreground">{mat.nome}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">Qtd: {mat.quantidade} {mat.unidade_medida}</p>
-                </div>
-                <div className="text-right">
-                  <span className="text-xs text-muted-foreground block font-medium">Custo</span>
+          {!materiais.length ? (
+            <div className="p-8 text-center text-muted-foreground bg-surface-container-low rounded-3xl border border-outline-variant/20">
+              Nenhum ingrediente ou insumo cadastrado na doceria.
+            </div>
+          ) : (
+            <div className="divide-y divide-outline-variant/20 rounded-3xl bg-surface-container-low border border-outline-variant/20 overflow-hidden">
+              {materiais.map((mat) => (
+                <div key={mat.id} className="p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 rounded-full bg-secondary-container text-on-secondary-container">
+                      <Package className="size-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-foreground">{mat.nome}</h4>
+                      <p className="text-xs text-muted-foreground">
+                        {mat.quantidade} {mat.unidade_medida || "un"}
+                      </p>
+                    </div>
+                  </div>
                   <span className="text-sm font-bold text-foreground">{brl(mat.custo_total)}</span>
                 </div>
-              </div>
-            ))}
-            {!materiais.length && (
-              <div className="p-8 text-center text-sm text-muted-foreground">
-                Nenhum insumo ou embalagem registrado.
-              </div>
-            )}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
-      {/* Drawer para Insumo */}
+      {/* Drawer: Novo Insumo */}
       <Drawer open={matDrawerOpen} onOpenChange={setMatDrawerOpen}>
-        <DrawerContent className="rounded-t-3xl bg-surface-container-low max-w-lg mx-auto p-4">
+        <DrawerContent className="rounded-t-3xl bg-surface-container-low max-w-lg mx-auto">
           <DrawerHeader>
-            <DrawerTitle className="text-lg font-black text-foreground">Novo Insumo para Doceria</DrawerTitle>
+            <DrawerTitle className="text-lg font-black text-foreground">Novo Insumo / Ingrediente</DrawerTitle>
           </DrawerHeader>
-          <form onSubmit={handleAddMaterial} className="space-y-4 px-2 pb-6">
-            <input name="nome" placeholder="Ex: Leite Condensado, Forminhas" className="h-14 w-full rounded-2xl border border-outline-variant/60 bg-surface px-4 text-sm outline-none" required />
+          <form onSubmit={handleAddMaterial} className="space-y-4 px-4 pb-8">
+            <input
+              name="nome"
+              placeholder="Nome do insumo (ex: Leite Condensado, Chocolate 50%)"
+              className="h-14 w-full rounded-2xl border border-outline-variant/60 bg-surface px-4 text-sm outline-none focus:border-2 focus:border-primary"
+              required
+            />
             <div className="grid grid-cols-2 gap-3">
-              <input name="quantidade" type="number" placeholder="Quantidade" defaultValue={1} className="h-14 w-full rounded-2xl border border-outline-variant/60 bg-surface px-4 text-sm outline-none" required />
-              <input name="custo_total" inputMode="decimal" placeholder="Custo Total (R$)" className="h-14 w-full rounded-2xl border border-outline-variant/60 bg-surface px-4 text-sm outline-none" />
+              <input
+                name="quantidade"
+                type="number"
+                defaultValue={1}
+                min={1}
+                placeholder="Qtd"
+                className="h-14 w-full rounded-2xl border border-outline-variant/60 bg-surface px-4 text-sm outline-none focus:border-2 focus:border-primary"
+                required
+              />
+              <input
+                name="custo_total"
+                inputMode="decimal"
+                placeholder="Custo Total (R$)"
+                className="h-14 w-full rounded-2xl border border-outline-variant/60 bg-surface px-4 text-sm outline-none focus:border-2 focus:border-primary"
+                required
+              />
             </div>
-            <button type="submit" className="h-12 w-full rounded-2xl bg-primary text-primary-foreground font-bold text-sm">Cadastrar Insumo</button>
+            <button
+              type="submit"
+              className="h-12 w-full rounded-2xl bg-primary text-primary-foreground font-bold text-sm"
+            >
+              Salvar Insumo
+            </button>
           </form>
         </DrawerContent>
       </Drawer>

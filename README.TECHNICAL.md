@@ -94,7 +94,7 @@ Todas as funções operam com `search_path = ''` (vazio, prevenindo sequestro de
 
 ---
 
-## 4. Arquivos do Repositório (Fase 1A Concluída & Fase 1B Preparada)
+## 4. Arquivos do Repositório (Fases 1A e 1B)
 
 - `src/lib/finance.ts`: Reescrita com núcleo monetário em centavos, neutralidade contábil e consolidação.
 - `src/lib/finance.test.ts`: Bateria completa com os 10 testes de integridade contábil.
@@ -103,4 +103,26 @@ Todas as funções operam com `search_path = ''` (vazio, prevenindo sequestro de
 - `drizzle/migrations/0003_enum_tesoureiro.sql`: Migration de enum isolada (`ALTER TYPE app_role ADD VALUE IF NOT EXISTS 'tesoureiro'`) para ser commitada antes de 0004.
 - `drizzle/migrations/0004_fase1b_fundacao.sql`: Script SQL completo com migração de dados, tabelas, RLS, locks consultivos e RPCs atômicas (Pronto para revisão, **NÃO APLICADO**).
 - `drizzle/migrations/0004_rollback_seguro.sql`: Script de reversão controlada, não-destrutiva (sem `DROP TABLE` e sem permissões irrestritas), preservando integridade histórica de dados e logs de auditoria.
+
+---
+
+## 5. Fase 2: Caixas e Movimentações (Implementação UI & Integração)
+
+### 5.1 Arquitetura dos Três Caixas Fixos
+A interface do GDACaixa organiza a tesouraria do clube nos três caixas aprovados:
+1. **Caixa Geral (`geral` / `/clube`):** Mensalidades, doações, taxas de inscrição e custos estruturais do clube.
+2. **Caixa da Doceria (`doceria` / `/doceria`):** Vendas de doces, compras de ingredientes/embalagens e repasses de lucros.
+3. **Caixa de Vendas Rápidas (`vendas` / `/vendas`):** Vendas de artigos, água, botons, comissões dos desbravadores e controle de avarias.
+
+### 5.2 Componentes Financeiros Desenvolvidos
+- **`CashBoxHeaderCard` (`src/components/m3/CashBoxHeaderCard.tsx`):** Exibe simultaneamente:
+  - Saldo Disponível (livre para gasto)
+  - Saldo Contábil Total (patrimônio registrado)
+  - Saldo Reservado (comprometido com finalidades específicas)
+  - Sub-métricas de Entradas, Saídas, Transferências Recebidas (+) e Enviadas (−)
+  - Ações rápidas para transferir saldo e criar reservas
+- **`TransferDrawer` (`src/components/m3/TransferDrawer.tsx`):** Gerencia transferências inter-caixas com seleção de origem/destino, validação em tempo real contra o saldo disponível da origem e acionamento da RPC atômica `sp_registrar_transferencia`.
+- **`ReservationDrawer` (`src/components/m3/ReservationDrawer.tsx`):** Gerencia reservas de saldo com criação validada contra saldo disponível, listagem de ativas e histórico, e ações de liberação (`releaseReservation`) e consumo (`consumeReservation`).
+- **`ResponsiveTransactionList` (`src/components/m3/ResponsiveTransactionList.tsx`):** Histórico completo com identificação de caixa, badges de status (`confirmado`, `pendente`, `estornado`, `rejeitado`), sinalização relativa de transferências (+ no destino, − na origem), detalhes do lançamento e ação de estorno (`reverseTransaction`) com justificativa.
+- **`fase2.test.ts` (`src/lib/fase2.test.ts`):** 6 cenários cobrindo invariantes contábeis entre os 3 caixas e o consolidado oficial, neutralidade de transferências e ciclo de vida de reservas.
 

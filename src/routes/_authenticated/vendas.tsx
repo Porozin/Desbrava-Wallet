@@ -1,10 +1,34 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Zap, Trophy, Plus, AlertTriangle, Package, Printer } from "lucide-react";
+import {
+  Zap,
+  Trophy,
+  Plus,
+  AlertTriangle,
+  Package,
+  Printer,
+  Search,
+} from "lucide-react";
 import { AppShell } from "@/components/m3/AppShell";
-import { ChipGroup, MetricCard, NewEntryFab, ResponsiveTransactionList } from "@/components/m3/parts";
-import { brl, COMMISSION_RATE, commissionBySeller, summarize } from "@/lib/finance";
-import { useTransactions, useProdutos, useAvarias, addProduto, addAvaria, useCanRecord, useMe } from "@/lib/data";
+import {
+  ChipGroup,
+  MetricCard,
+  NewEntryFab,
+  ResponsiveTransactionList,
+  CashBoxHeaderCard,
+} from "@/components/m3/parts";
+import { brl, commissionBySeller, summarizeBox } from "@/lib/finance";
+import {
+  useTransactions,
+  useBoxTransactions,
+  useReservations,
+  useProdutos,
+  useAvarias,
+  addProduto,
+  addAvaria,
+  useCanRecord,
+  useMe,
+} from "@/lib/data";
 import { generatePrintReport } from "@/lib/printReport";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { toast } from "sonner";
@@ -12,10 +36,16 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/_authenticated/vendas")({
   head: () => ({
     meta: [
-      { title: "GDACaixa 2027 — Vendas e Eventos" },
-      { name: "description", content: "Vendas rápidas, produtos, perdas/avarias e comissões." },
-      { property: "og:title", content: "GDACaixa 2027 — Vendas e Eventos" },
-      { property: "og:description", content: "Vendas rápidas, produtos, perdas/avarias e comissões." },
+      { title: "GDACaixa 2027 — Caixa de Vendas Rápidas" },
+      {
+        name: "description",
+        content: "Vendas rápidas, produtos, perdas/avarias e comissões.",
+      },
+      { property: "og:title", content: "GDACaixa 2027 — Caixa de Vendas Rápidas" },
+      {
+        property: "og:description",
+        content: "Gestão do Caixa de Vendas Rápidas do Clube Guerreiros do Alto.",
+      },
     ],
   }),
   component: Vendas,
@@ -24,20 +54,32 @@ export const Route = createFileRoute("/_authenticated/vendas")({
 type TabView = "vendas" | "produtos" | "avarias";
 
 function Vendas() {
-  const items = useTransactions("vendas");
+  const allTx = useTransactions();
+  const boxTx = useBoxTransactions("vendas");
+  const boxReservations = useReservations("vendas");
   const { data: produtos = [] } = useProdutos();
   const { data: avarias = [] } = useAvarias();
   const { data: me } = useMe();
   const canRecord = useCanRecord();
 
   const [currentTab, setCurrentTab] = useState<TabView>("vendas");
+  const [kind, setKind] = useState<"all" | "receita" | "despesa" | "transferencia">("all");
+  const [q, setQ] = useState("");
   const [prodDrawerOpen, setProdDrawerOpen] = useState(false);
   const [avariaDrawerOpen, setAvariaDrawerOpen] = useState(false);
 
-  const s = summarize(items);
-  const ranking = commissionBySeller(items);
+  const boxSummary = summarizeBox(allTx, "vendas", boxReservations);
+  const ranking = commissionBySeller(boxTx);
   const totalComissoes = ranking.reduce((acc, cur) => acc + cur.commission, 0);
   const totalAvarias = avarias.reduce((acc, cur) => acc + cur.perda_estimada, 0);
+
+  const items = boxTx.filter(
+    (t) =>
+      (kind === "all" || t.kind === kind) &&
+      (t.description.toLowerCase().includes(q.toLowerCase()) ||
+        t.category.toLowerCase().includes(q.toLowerCase()) ||
+        (t.seller && t.seller.toLowerCase().includes(q.toLowerCase())))
+  );
 
   async function handleAddProduto(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -88,12 +130,16 @@ function Vendas() {
   function handlePrint() {
     generatePrintReport({
       module: "vendas",
-      title: "Extrato de Vendas Rápidas & Comissões",
+      title: "Extrato Oficial — Caixa de Vendas Rápidas & Eventos",
       responsible: me?.name || "Tesouraria de Vendas",
-      transactions: items,
+      transactions: boxTx,
       additionalStats: [
+        { label: "Saldo Disponível", value: brl(boxSummary.available) },
+        { label: "Saldo Reservado", value: brl(boxSummary.reserved) },
         { label: "Comissões Distribuídas", value: brl(totalComissoes) },
         { label: "Perdas (Avarias)", value: `-${brl(totalAvarias)}`, isNegative: true },
+        { label: "Transferências Enviadas", value: `−${brl(boxSummary.transfers_out)}`, isNegative: true },
+        { label: "Transferências Recebidas", value: `+${brl(boxSummary.transfers_in)}` },
       ],
       signatures: [
         { role: "Diretor(a) do Clube" },
@@ -103,14 +149,14 @@ function Vendas() {
   }
 
   return (
-    <AppShell title="Vendas Rápidas" fab={<NewEntryFab module="vendas" withSeller />}>
+    <AppShell title="Vendas Rápidas" fab={<NewEntryFab module="vendas" boxId="vendas" withSeller />}>
       {/* Abas Secundárias M3 */}
       <div className="flex gap-2">
         <ChipGroup
           value={currentTab}
           onChange={setCurrentTab}
           options={[
-            { value: "vendas", label: "Vendas & Ranking" },
+            { value: "vendas", label: "Caixa & Vendas" },
             { value: "produtos", label: `Catálogo (${produtos.length})` },
             { value: "avarias", label: `Avarias (${avarias.length})` },
           ]}
@@ -127,69 +173,56 @@ function Vendas() {
 
       {currentTab === "vendas" && (
         <>
-          <MetricCard
-            variant="primary"
-            title="Total em Vendas"
-            value={brl(s.income)}
-            subtitle={`Comissões calculadas: ${brl(totalComissoes)} | Perdas por avaria: ${brl(totalAvarias)}`}
-            icon={Zap}
-          />
+          {/* Card Central com Saldos (Disponível, Contábil e Reservas) */}
+          <CashBoxHeaderCard boxId="vendas" summary={boxSummary} />
 
-          {/* Ranking de Vendedores */}
-          <div className="rounded-3xl bg-surface-container-low p-5 border border-outline-variant/20 shadow-xs">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Trophy className="size-5 text-amber-500" />
-                <h2 className="text-base font-bold text-foreground">
-                  Ranking de Vendedores ({COMMISSION_RATE * 100}%)
-                </h2>
-              </div>
-              <span className="text-xs text-muted-foreground font-semibold">
-                {ranking.length} {ranking.length === 1 ? "vendedor" : "vendedores"}
-              </span>
-            </div>
-
-            <ul className="space-y-2.5">
-              {ranking.map((r, i) => (
-                <li
-                  key={r.seller}
-                  className="flex items-center gap-3.5 p-2.5 rounded-2xl bg-surface-container-highest/40 hover:bg-surface-container-high/60 transition-colors"
-                >
-                  <span
-                    className={`text-xs font-black flex size-9 shrink-0 items-center justify-center rounded-full ${
-                      i === 0
-                        ? "bg-amber-400/20 text-amber-600 dark:text-amber-300 ring-2 ring-amber-400/40"
-                        : i === 1
-                        ? "bg-slate-300/30 text-slate-700 dark:text-slate-300"
-                        : i === 2
-                        ? "bg-amber-700/20 text-amber-800 dark:text-amber-400"
-                        : "bg-surface-container text-muted-foreground"
-                    }`}
-                  >
-                    {i + 1}º
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-foreground truncate">{r.seller}</p>
-                    <p className="text-xs text-muted-foreground">{brl(r.sales)} vendidos</p>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <span className="text-xs text-muted-foreground block font-medium">Comissão</span>
-                    <span className="text-sm font-bold text-income">{brl(r.commission)}</span>
-                  </div>
-                </li>
-              ))}
-              {!ranking.length && (
-                <div className="py-6 text-center text-xs text-muted-foreground">
-                  Nenhuma venda atribuída a vendedor até o momento.
-                </div>
-              )}
-            </ul>
+          {/* Métricas de Comissões e Avarias */}
+          <div className="grid grid-cols-2 gap-3">
+            <MetricCard
+              variant="filled"
+              title="Comissões Pagas"
+              value={brl(totalComissoes)}
+              subtitle="Repasse aos desbravadores"
+              icon={Trophy}
+              tone="expense"
+            />
+            <MetricCard
+              variant="filled"
+              title="Perdas / Avarias"
+              value={brl(totalAvarias)}
+              subtitle="Itens perdidos ou danificados"
+              icon={AlertTriangle}
+              tone="expense"
+            />
           </div>
+
+          {/* Busca e Filtros */}
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-muted-foreground" />
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Buscar por descrição, vendedor ou produto…"
+              className="h-14 w-full rounded-2xl bg-surface-container-high/60 pl-12 pr-4 text-sm text-foreground outline-none border border-outline-variant/30 focus:border-2 focus:border-primary transition-all"
+            />
+          </div>
+
+          <ChipGroup
+            value={kind}
+            onChange={setKind}
+            options={[
+              { value: "all", label: "Todas" },
+              { value: "receita", label: "Vendas (+)" },
+              { value: "despesa", label: "Despesas (−)" },
+              { value: "transferencia", label: "Transferências" },
+            ]}
+          />
 
           <ResponsiveTransactionList
             items={items}
-            title="Histórico de Vendas"
-            empty="Nenhuma venda ou evento registrado ainda."
+            currentBoxId="vendas"
+            title="Histórico de Movimentações — Vendas Rápidas"
+            empty="Nenhuma movimentação encontrada em Vendas."
           />
         </>
       )}
@@ -197,7 +230,7 @@ function Vendas() {
       {currentTab === "produtos" && (
         <div className="space-y-4">
           <div className="flex items-center justify-between px-1">
-            <h2 className="text-base font-bold text-foreground">Catálogo de Produtos (Tortinhas/Doces)</h2>
+            <h2 className="text-base font-bold text-foreground">Catálogo de Produtos</h2>
             {canRecord && (
               <button
                 onClick={() => setProdDrawerOpen(true)}
@@ -208,113 +241,163 @@ function Vendas() {
             )}
           </div>
 
-          <div className="divide-y divide-outline-variant/20 rounded-3xl bg-surface-container-low border border-outline-variant/20 overflow-hidden">
-            {produtos.map((p) => {
-              const margem = p.preco_venda - p.custo - p.comissao;
-              return (
-                <div key={p.id} className="p-4 flex items-center justify-between gap-3">
+          {!produtos.length ? (
+            <div className="p-8 text-center text-muted-foreground bg-surface-container-low rounded-3xl border border-outline-variant/20">
+              Nenhum produto cadastrado no catálogo.
+            </div>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {produtos.map((p) => (
+                <div
+                  key={p.id}
+                  className="p-5 rounded-3xl bg-surface-container-low border border-outline-variant/20 flex flex-col justify-between"
+                >
                   <div>
-                    <p className="text-sm font-bold text-foreground">{p.nome}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Custo: {brl(p.custo)} | Comissão: {brl(p.comissao)}
-                    </p>
+                    <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                      <Package className="size-3.5 text-primary" /> Item de Venda
+                    </span>
+                    <h3 className="text-base font-bold text-foreground mt-1">{p.nome}</h3>
                   </div>
-                  <div className="text-right">
-                    <span className="text-sm font-bold text-foreground block">{brl(p.preco_venda)}</span>
-                    <span className="text-[11px] font-semibold text-income">Margem: {brl(margem)}</span>
+                  <div className="mt-4 flex items-center justify-between border-t border-outline-variant/20 pt-3">
+                    <span className="text-base font-black text-income">{brl(p.preco_venda)}</span>
+                    <span className="text-xs text-muted-foreground">
+                      Custo: {brl(p.custo)} • Com.: {brl(p.comissao)}
+                    </span>
                   </div>
                 </div>
-              );
-            })}
-            {!produtos.length && (
-              <div className="p-8 text-center text-sm text-muted-foreground">
-                Nenhum produto cadastrado no catálogo.
-              </div>
-            )}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
       {currentTab === "avarias" && (
         <div className="space-y-4">
-          <MetricCard
-            variant="filled"
-            title="Total de Perdas (Avarias)"
-            value={brl(totalAvarias)}
-            subtitle={`${avarias.length} avarias registradas`}
-            icon={AlertTriangle}
-            tone="expense"
-          />
-
           <div className="flex items-center justify-between px-1">
-            <h2 className="text-base font-bold text-foreground">Registro de Avarias</h2>
+            <div>
+              <h2 className="text-base font-bold text-foreground">Registro de Avarias e Perdas</h2>
+              <p className="text-xs text-muted-foreground">
+                Prejuízo total acumulado: <strong className="text-expense">{brl(totalAvarias)}</strong>
+              </p>
+            </div>
             {canRecord && (
               <button
                 onClick={() => setAvariaDrawerOpen(true)}
-                className="flex items-center gap-1 text-xs font-bold text-destructive hover:underline"
+                className="flex items-center gap-1 text-xs font-bold text-expense hover:underline"
               >
                 <Plus className="size-4" /> Registrar Avaria
               </button>
             )}
           </div>
 
-          <div className="divide-y divide-outline-variant/20 rounded-3xl bg-surface-container-low border border-outline-variant/20 overflow-hidden">
-            {avarias.map((av) => (
-              <div key={av.id} className="p-4 flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-bold text-foreground">{av.produto_nome}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {av.quantidade}x unidades | {new Date(av.data + "T12:00").toLocaleDateString("pt-BR")}
-                    {av.motivo ? ` • ${av.motivo}` : ""}
-                  </p>
+          {!avarias.length ? (
+            <div className="p-8 text-center text-muted-foreground bg-surface-container-low rounded-3xl border border-outline-variant/20">
+              Nenhuma avaria registrada.
+            </div>
+          ) : (
+            <div className="divide-y divide-outline-variant/20 rounded-3xl bg-surface-container-low border border-outline-variant/20 overflow-hidden">
+              {avarias.map((av) => (
+                <div key={av.id} className="p-4 flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-bold text-foreground">{av.produto_nome}</h4>
+                    <p className="text-xs text-muted-foreground">
+                      {av.quantidade} unidade(s) • Motivo: {av.motivo || "Não especificado"}
+                    </p>
+                  </div>
+                  <span className="text-sm font-bold text-expense">−{brl(av.perda_estimada)}</span>
                 </div>
-                <div className="text-right">
-                  <span className="text-xs text-muted-foreground block font-medium">Perda</span>
-                  <span className="text-sm font-bold text-expense">-{brl(av.perda_estimada)}</span>
-                </div>
-              </div>
-            ))}
-            {!avarias.length && (
-              <div className="p-8 text-center text-sm text-muted-foreground">
-                Nenhuma avaria registrada.
-              </div>
-            )}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
-      {/* Drawer para Cadastrar Produto */}
+      {/* Drawer: Novo Produto */}
       <Drawer open={prodDrawerOpen} onOpenChange={setProdDrawerOpen}>
-        <DrawerContent className="rounded-t-3xl bg-surface-container-low max-w-lg mx-auto p-4">
+        <DrawerContent className="rounded-t-3xl bg-surface-container-low max-w-lg mx-auto">
           <DrawerHeader>
-            <DrawerTitle className="text-lg font-black text-foreground">Novo Produto para Venda</DrawerTitle>
+            <DrawerTitle className="text-lg font-black text-foreground">Novo Produto no Catálogo</DrawerTitle>
           </DrawerHeader>
-          <form onSubmit={handleAddProduto} className="space-y-4 px-2 pb-6">
-            <input name="nome" placeholder="Nome do produto (ex: Tortinha de Limão)" className="h-14 w-full rounded-2xl border border-outline-variant/60 bg-surface px-4 text-sm outline-none" required />
+          <form onSubmit={handleAddProduto} className="space-y-4 px-4 pb-8">
+            <input
+              name="nome"
+              placeholder="Nome do produto (ex: Caneta GDA)"
+              className="h-14 w-full rounded-2xl border border-outline-variant/60 bg-surface px-4 text-sm outline-none focus:border-2 focus:border-primary"
+              required
+            />
             <div className="grid grid-cols-3 gap-2">
-              <input name="preco_venda" inputMode="decimal" placeholder="Preço (R$)" className="h-14 w-full rounded-2xl border border-outline-variant/60 bg-surface px-3 text-sm outline-none" required />
-              <input name="custo" inputMode="decimal" placeholder="Custo (R$)" className="h-14 w-full rounded-2xl border border-outline-variant/60 bg-surface px-3 text-sm outline-none" />
-              <input name="comissao" inputMode="decimal" placeholder="Comissão" className="h-14 w-full rounded-2xl border border-outline-variant/60 bg-surface px-3 text-sm outline-none" />
+              <input
+                name="preco_venda"
+                inputMode="decimal"
+                placeholder="Preço Venda (R$)"
+                className="h-14 w-full rounded-2xl border border-outline-variant/60 bg-surface px-3 text-xs outline-none focus:border-2 focus:border-primary font-bold"
+                required
+              />
+              <input
+                name="custo"
+                inputMode="decimal"
+                placeholder="Custo (R$)"
+                className="h-14 w-full rounded-2xl border border-outline-variant/60 bg-surface px-3 text-xs outline-none focus:border-2 focus:border-primary"
+              />
+              <input
+                name="comissao"
+                inputMode="decimal"
+                placeholder="Comissão (R$)"
+                className="h-14 w-full rounded-2xl border border-outline-variant/60 bg-surface px-3 text-xs outline-none focus:border-2 focus:border-primary"
+              />
             </div>
-            <button type="submit" className="h-12 w-full rounded-2xl bg-primary text-primary-foreground font-bold text-sm">Salvar Produto</button>
+            <button
+              type="submit"
+              className="h-12 w-full rounded-2xl bg-primary text-primary-foreground font-bold text-sm"
+            >
+              Salvar Produto
+            </button>
           </form>
         </DrawerContent>
       </Drawer>
 
-      {/* Drawer para Registrar Avaria */}
+      {/* Drawer: Nova Avaria */}
       <Drawer open={avariaDrawerOpen} onOpenChange={setAvariaDrawerOpen}>
-        <DrawerContent className="rounded-t-3xl bg-surface-container-low max-w-lg mx-auto p-4">
+        <DrawerContent className="rounded-t-3xl bg-surface-container-low max-w-lg mx-auto">
           <DrawerHeader>
-            <DrawerTitle className="text-lg font-black text-destructive">Registrar Perda / Avaria</DrawerTitle>
+            <DrawerTitle className="text-lg font-black text-foreground">Registrar Perda / Avaria</DrawerTitle>
           </DrawerHeader>
-          <form onSubmit={handleAddAvaria} className="space-y-4 px-2 pb-6">
-            <input name="produto_nome" placeholder="Produto (ex: Tortinha danificada)" className="h-14 w-full rounded-2xl border border-outline-variant/60 bg-surface px-4 text-sm outline-none" required />
+          <form onSubmit={handleAddAvaria} className="space-y-4 px-4 pb-8">
+            <input
+              name="produto_nome"
+              placeholder="Nome do produto avariado"
+              className="h-14 w-full rounded-2xl border border-outline-variant/60 bg-surface px-4 text-sm outline-none focus:border-2 focus:border-primary"
+              required
+            />
             <div className="grid grid-cols-2 gap-3">
-              <input name="quantidade" type="number" placeholder="Qtd" defaultValue={1} className="h-14 w-full rounded-2xl border border-outline-variant/60 bg-surface px-4 text-sm outline-none" required />
-              <input name="perda_estimada" inputMode="decimal" placeholder="Perda (R$)" className="h-14 w-full rounded-2xl border border-outline-variant/60 bg-surface px-4 text-sm outline-none" />
+              <input
+                name="quantidade"
+                type="number"
+                defaultValue={1}
+                min={1}
+                placeholder="Qtd"
+                className="h-14 w-full rounded-2xl border border-outline-variant/60 bg-surface px-4 text-sm outline-none focus:border-2 focus:border-primary"
+                required
+              />
+              <input
+                name="perda_estimada"
+                inputMode="decimal"
+                placeholder="Perda Estimada (R$)"
+                className="h-14 w-full rounded-2xl border border-outline-variant/60 bg-surface px-4 text-sm outline-none focus:border-2 focus:border-primary"
+                required
+              />
             </div>
-            <input name="motivo" placeholder="Motivo (ex: Caiu no chão, passou da validade)" className="h-14 w-full rounded-2xl border border-outline-variant/60 bg-surface px-4 text-sm outline-none" />
-            <button type="submit" className="h-12 w-full rounded-2xl bg-destructive text-destructive-foreground font-bold text-sm">Registrar Perda</button>
+            <input
+              name="motivo"
+              placeholder="Motivo da perda (ex: quebrado, vencido, extraviado)"
+              className="h-14 w-full rounded-2xl border border-outline-variant/60 bg-surface px-4 text-sm outline-none focus:border-2 focus:border-primary"
+            />
+            <button
+              type="submit"
+              className="h-12 w-full rounded-2xl bg-expense text-white font-bold text-sm"
+            >
+              Registrar Avaria
+            </button>
           </form>
         </DrawerContent>
       </Drawer>

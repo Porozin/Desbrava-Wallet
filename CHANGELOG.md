@@ -2,6 +2,27 @@
 
 Todas as alterações notáveis deste projeto serão documentadas neste arquivo.
 
+## [0.3.0] - 2026-11-18
+### Fase 2 — Caixas e Movimentações (Concluída)
+#### Adicionado
+- **Componentes M3 Expressive de Gestão de Caixas:**
+  - `CashBoxHeaderCard`: Cockpit financeiro dedicado por caixa com exibição de Saldo Disponível (livre), Saldo Contábil Total e Saldo Reservado (comprometido), além de resumo de receitas, despesas e transferências recebidas/enviadas.
+  - `TransferDrawer`: Formulário responsivo de transferências entre os três caixas fixos com validação em tempo real contra o saldo disponível da origem e chamada da RPC `recordTransfer`.
+  - `ReservationDrawer`: Painel completo de gestão de reservas de saldo com criação validada contra saldo disponível, listagem de reservas ativas e histórico, e ações de liberação (`releaseReservation`) e consumo (`consumeReservation`).
+  - `ResponsiveTransactionList`: Histórico aprimorado com badges de caixa, situação (confirmado, pendente, estornado, rejeitado), sinalização relativa de transferências (+ no destino, − na origem), detalhes completos do lançamento e ação de estorno (`reverseTransaction`) com justificativa para gestores.
+- **Telas e Rotas Adaptadas para os 3 Caixas:**
+  - `src/routes/_authenticated/index.tsx`: Dashboard consolidado com os três caixas, patrimônio líquido invariante, botão de transferência rápida e atalhos para cada caixa.
+  - `src/routes/_authenticated/clube.tsx`: Caixa Geral do Clube integrado com `CashBoxHeaderCard`, `useBoxTransactions("geral")`, `useReservations("geral")`, filtros por tipo e extrato em PDF atualizado.
+  - `src/routes/_authenticated/doceria.tsx`: Caixa da Doceria integrado com `CashBoxHeaderCard`, métricas de margem de lucro operacional e insumos.
+  - `src/routes/_authenticated/vendas.tsx`: Caixa de Vendas Rápidas integrado com `CashBoxHeaderCard`, catálogo, avarias e comissões.
+- **Suite de Testes da Fase 2 (`src/lib/fase2.test.ts`):**
+  - Validação de invariantes contábeis entre os 3 caixas e o consolidado oficial, neutralidade de transferências e impacto de reservas no saldo disponível.
+
+#### Modificado
+- `src/components/m3/parts.tsx`: `NewEntryFab` aprimorado com seletor de forma de pagamento (`dinheiro`, `pix`, `cartao_debito`, `cartao_credito`, `outro`) e vinculação a `boxId`.
+- `src/routes/_authenticated/mais.tsx`: Exportação de planilha CSV enriquecida com identificador de caixa, forma de pagamento e situação da transação.
+- `src/lib/printReport.ts`: Suporte visual adequado para transferências internas nos extratos impressos.
+
 ## [0.2.1] - 2026-11-13
 ### Fase 1B — Fundação de Dados, Modelagem, Concorrência e Segurança (Concluída para Revisão)
 #### Adicionado
