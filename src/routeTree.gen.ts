@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as TransparenciaRouteImport } from './routes/transparencia'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedClubeRouteImport } from './routes/_authenticated/clube'
 import { Route as AuthenticatedDoceriaRouteImport } from './routes/_authenticated/doceria'
@@ -24,6 +25,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TransparenciaRoute = TransparenciaRouteImport.update({
+  id: '/transparencia',
+  path: '/transparencia',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
@@ -55,6 +61,7 @@ const AuthenticatedVendasRoute = AuthenticatedVendasRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthRoute
+  '/transparencia': typeof TransparenciaRoute
   '/clube': typeof AuthenticatedClubeRoute
   '/doceria': typeof AuthenticatedDoceriaRoute
   '/mais': typeof AuthenticatedMaisRoute
@@ -62,6 +69,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
+  '/transparencia': typeof TransparenciaRoute
   '/clube': typeof AuthenticatedClubeRoute
   '/doceria': typeof AuthenticatedDoceriaRoute
   '/mais': typeof AuthenticatedMaisRoute
@@ -72,6 +80,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/transparencia': typeof TransparenciaRoute
   '/_authenticated/clube': typeof AuthenticatedClubeRoute
   '/_authenticated/doceria': typeof AuthenticatedDoceriaRoute
   '/_authenticated/mais': typeof AuthenticatedMaisRoute
@@ -80,13 +89,14 @@ export interface FileRoutesById {
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/clube' | '/doceria' | '/mais' | '/vendas'
+  fullPaths: '/' | '/auth' | '/transparencia' | '/clube' | '/doceria' | '/mais' | '/vendas'
   fileRoutesByTo: FileRoutesByTo
-  to: '/auth' | '/clube' | '/doceria' | '/mais' | '/vendas' | '/'
+  to: '/auth' | '/transparencia' | '/clube' | '/doceria' | '/mais' | '/vendas' | '/'
   id:
     | '__root__'
     | '/_authenticated'
     | '/auth'
+    | '/transparencia'
     | '/_authenticated/clube'
     | '/_authenticated/doceria'
     | '/_authenticated/mais'
@@ -97,6 +107,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  TransparenciaRoute: typeof TransparenciaRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -113,6 +124,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/transparencia': {
+      id: '/transparencia'
+      path: '/transparencia'
+      fullPath: '/transparencia'
+      preLoaderRoute: typeof TransparenciaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/': {
@@ -175,6 +193,7 @@ const AuthenticatedRouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  TransparenciaRoute: TransparenciaRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

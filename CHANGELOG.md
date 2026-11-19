@@ -2,6 +2,29 @@
 
 Todas as alterações notáveis deste projeto serão documentadas neste arquivo.
 
+## [0.5.0] - 2026-11-18
+### Fase 5 — Histórico, Relatórios e Transparência Pública (Concluída)
+#### Adicionado
+- **Portal Público da Transparência Financeira (`src/routes/transparencia.tsx` & `src/lib/transparencia.ts`):**
+  - Rota pública oficial (`/transparencia`), acessível sem autenticação para pais, igreja e comunidade.
+  - Conformidade estrita com a LGPD: sanitização de nomes de compradores, doadores privados e credenciais.
+  - Indicadores consolidados em tempo real: Total Arrecadado, Total Investido/Aplicado e Saldo Consolidado Oficial.
+  - Posição contábil individualizada dos 3 caixas (Geral, Doceria e Vendas Rápidas).
+  - Destinação de despesas por categoria com barras percentuais em Material Design 3.
+  - Lançamentos oficiais confirmados com filtros temporais (Histórico Todo, Ano Atual, 90 dias, 30 dias), tipo e busca textual.
+  - Ações para exportar planilha pública em CSV e impressão de relatório oficial.
+- **Central de Histórico & Relatórios Oficiais (`src/components/m3/ReportsCenterDrawer.tsx`):**
+  - Integrada em `src/routes/_authenticated/mais.tsx` com 4 visões gerenciais completas:
+    1. **Histórico com Filtros Multicritério:** Combinações simultâneas por Caixa, Tipo (receita/despesa/transferência), Situação (confirmado/pendente/estornado/rejeitado), Forma de Pagamento (dinheiro/pix/débito/crédito), período e busca por texto, com totalizadores dinâmicos e exportação CSV/PDF do filtro ativo.
+    2. **Relatório de Vendas por Produto:** Faturamento bruto, quantidade de registros, custos proporcionais de insumos e margem de lucro por produto.
+    3. **Relatório de Comissões por Vendedor / Desbravador:** Apuração das vendas associadas a cada membro com cálculo de comissões devidas (`commissionBySeller`) e emissão de folha de pagamento em PDF.
+    4. **Fechamento Mensal Oficial:** Balancete contábil fechado por mês e ano para qualquer caixa ou consolidado, com emissão de extrato formal para ata da Igreja e diretoria.
+- **Camada de Dados e Migração SQL (`drizzle/migrations/0006_transparencia_publica.sql`):**
+  - View segura `vw_transparencia_publica` expondo apenas campos auditados sem dados pessoais, com concessão para `anon` e `authenticated`.
+  - RPC segura `sp_resumo_transparencia_publica` agregando receitas e despesas por ano/mês com `SECURITY DEFINER` e `SET search_path = ''`.
+- **Suite de Testes da Fase 5 (`src/lib/fase5.test.ts`):**
+  - 4 baterias automatizadas aprovadas com 100% de sucesso cobrindo anonimização LGPD, agregação contábil pública, comissões de vendedores e balancete mensal com neutralidade de transferências.
+
 ## [0.4.0] - 2026-11-18
 ### Persistência de Sessão (7 Dias), Transparência RLS, Categorias Fixas e Ficha Técnica de Produtos
 #### Adicionado

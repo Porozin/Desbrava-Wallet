@@ -126,3 +126,27 @@ A interface do GDACaixa organiza a tesouraria do clube nos três caixas aprovado
 - **`ResponsiveTransactionList` (`src/components/m3/ResponsiveTransactionList.tsx`):** Histórico completo com identificação de caixa, badges de status (`confirmado`, `pendente`, `estornado`, `rejeitado`), sinalização relativa de transferências (+ no destino, − na origem), detalhes do lançamento e ação de estorno (`reverseTransaction`) com justificativa.
 - **`fase2.test.ts` (`src/lib/fase2.test.ts`):** 6 cenários cobrindo invariantes contábeis entre os 3 caixas e o consolidado oficial, neutralidade de transferências e ciclo de vida de reservas.
 
+---
+
+## 6. Fase 5: Histórico, Relatórios e Transparência Pública (Concluída)
+
+### 6.1 Portal Público de Transparência (`src/routes/transparencia.tsx` & `src/lib/transparencia.ts`)
+- **Acesso Público sem Autenticação:** A rota `/transparencia` disponibiliza para a igreja, pais e comunidade a prestação de contas dos 3 caixas oficiais.
+- **Proteção e Conformidade LGPD:**
+  - A view `public.vw_transparencia_publica` filtra estritamente transações confirmadas e omite qualquer identificação de compradores, doadores privados ou metadados de autenticação interna.
+- **Cockpit e Indicadores:**
+  - Total Arrecadado, Total Aplicado e Saldo Consolidado Oficial.
+  - Distribuição das despesas por categoria com percentuais relativos calculados pelo núcleo financeiro.
+  - Exportação instantânea em CSV público e emissão de relatório PDF com assinaturas de comissão.
+
+### 6.2 Central de Histórico & Relatórios (`src/components/m3/ReportsCenterDrawer.tsx`)
+- Integrada na aba Perfil/Ajustes (`/mais`) com 4 visões especializadas:
+  1. **Histórico com Filtros Multicritério:** Permite combinar simultaneamente Caixa, Tipo, Situação (`confirmado`, `pendente`, `estornado`, `rejeitado`), Forma de Pagamento e busca textual, apresentando totalizadores dinâmicos e exportação de CSV e PDF do recorte filtrado.
+  2. **Vendas por Produto:** Quantidade vendida, faturamento bruto, custos calculados a partir dos insumos vinculados e margem de lucro por produto.
+  3. **Comissões por Desbravador:** Apuração das vendas associadas a cada membro com cálculo de comissões devidas (`commissionBySeller`) e emissão de folha de pagamento em PDF.
+  4. **Fechamento Mensal Oficial:** Balancete contábil fechado por mês e ano para qualquer caixa ou consolidado, com emissão de extrato formal para ata da Igreja e diretoria.
+
+### 6.3 Matriz de Testes da Fase 5 (`src/lib/fase5.test.ts`)
+- 4 cenários automatizados cobrindo anonimização de dados LGPD, agregação do portal de transparência, apuração de comissões por vendedor e fechamento mensal com neutralidade de transferências.
+
+

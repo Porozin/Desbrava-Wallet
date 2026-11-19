@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -15,6 +15,9 @@ import {
   Clock,
   Users2,
   UserCheck,
+  FileText,
+  Globe,
+  Share2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/m3/AppShell";
@@ -37,6 +40,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { generatePrintReport } from "@/lib/printReport";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
+import { ReportsCenterDrawer } from "@/components/m3/ReportsCenterDrawer";
 
 export const Route = createFileRoute("/_authenticated/mais")({
   head: () => ({
@@ -65,6 +69,7 @@ function Mais() {
 
   const [dividaDrawerOpen, setDividaDrawerOpen] = useState(false);
   const [usersDrawerOpen, setUsersDrawerOpen] = useState(false);
+  const [reportsDrawerOpen, setReportsDrawerOpen] = useState(false);
   const [backupWebhook, setBackupWebhook] = useState(
     () => localStorage.getItem("gda_backup_webhook") || ""
   );
@@ -238,6 +243,21 @@ function Mais() {
   }
 
   const items = [
+    {
+      icon: FileText,
+      label: "Central de Histórico & Relatórios",
+      sub: "Filtros avançados, vendas por produto, comissões de desbravadores e fechamentos",
+      onClick: () => setReportsDrawerOpen(true),
+      highlight: true,
+    },
+    {
+      icon: Globe,
+      label: "Portal da Transparência Pública",
+      sub: "Página pública oficial aberta para pais e comissão da igreja (/transparencia)",
+      onClick: () => {
+        window.open("/transparencia", "_blank");
+      },
+    },
     {
       icon: Users2,
       label: "Gerenciamento de Usuários & Cargos",
@@ -492,6 +512,12 @@ function Mais() {
           </form>
         </DrawerContent>
       </Drawer>
+
+      {/* Drawer: Central de Histórico & Relatórios da Fase 5 */}
+      <ReportsCenterDrawer
+        open={reportsDrawerOpen}
+        onOpenChange={setReportsDrawerOpen}
+      />
     </AppShell>
   );
 }
