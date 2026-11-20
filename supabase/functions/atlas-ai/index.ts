@@ -215,6 +215,7 @@ async function executeTool(
     case "propor_excluir_produto":
     case "propor_criar_insumo":
     case "propor_atualizar_insumo":
+    case "propor_criar_divida":
     case "propor_excluir_insumo": {
       const operationType = toolName.replace("propor_", "");
       const token = crypto.randomUUID();
@@ -386,7 +387,7 @@ async function executeConfirmedOperation(
         if (e3) throw e3; result = { success: true }; break;
       }
       case "criar_produto": {
-        const { error: e4 } = await supabaseAsUser.from("produtos").insert({ nome: params.nome, preco_venda: parseFloat(String(params.preco_venda)), custo: parseFloat(String(params.custo ?? 0)), comissao: parseFloat(String(params.comissao ?? 0)), modulo: params.modulo });
+        const { error: e4 } = await supabaseAsUser.from("produtos").insert({ nome: params.nome, preco_venda: parseFloat(String(params.preco_venda)), custo: parseFloat(String(params.custo ?? 0)), comissao: parseFloat(String(params.comissao ?? 0)), modulo: params.modulo ?? "vendas" });
         if (e4) throw e4; result = { success: true }; break;
       }
       case "atualizar_produto": {
@@ -416,6 +417,10 @@ async function executeConfirmedOperation(
       case "excluir_insumo": {
         const { error: e9 } = await supabaseAsUser.from("materiais").delete().eq("id", params.insumo_id);
         if (e9) throw e9; result = { success: true }; break;
+      }
+      case "criar_divida": {
+        const { error: ed } = await supabaseAsUser.from("dividas").insert({ nome: params.nome, valor: parseFloat(String(params.valor)), data: params.date ?? new Date().toISOString().slice(0,10), status: "pendente", obs: params.obs ?? null });
+        if (ed) throw ed; result = { success: true }; break;
       }
       default:
         throw new Error("Tipo de operacao desconhecido: " + op.operation_type);
@@ -452,15 +457,16 @@ function buildSystemPrompt(
 
   const prompt = "Voce e o Atlas AI, assistente financeiro do Clube de Desbravadores Guerreiros do Alto (GDA). " +
     "Data: " + hoje + ". Cargo do usuario: " + userRole + ". " + saldoStr + " " +
-    "REGRAS: 1. Responda SEMPRE em portugues brasileiro claro e direto, sem formatacao markdown (sem asteriscos, sem #, sem hifens de lista, sem backticks). " +
-    "2. Para qualquer operacao que modifique dados use ferramentas propor_*. NUNCA execute escrita diretamente. " +
-    "3. Apos propor operacao, apresente detalhes e aguarde confirmacao do usuario. " +
-    "4. Nunca invente dados. Use ferramentas de leitura para consultar informacoes reais. " +
-    "5. Valores monetarios no formato R$ X.XXX,XX. " +
+    "REGRAS:" +
+    " 1. Responda em portugues claro e direto, SEM markdown (sem asteriscos, #, hifens de lista, backticks)." +
+    " 2. Ao propor operacao, apresente resumo limpo (nome, valor, caixa, etc). NAO inclua UUID/token na resposta." +
+    " 3. Aguarde confirmacao explicita antes de executar qualquer escrita." +
+    " 4. Use ferramentas de leitura para buscar dados reais." +
+    " 5. Valores no formato R$ X.XXX,XX." +
     (isManager ?
-      "6. Voce pode propor: lancamentos, transferencias, estornos, criar/editar/excluir metas, produtos e insumos. " :
-      "6. Voce pode apenas consultar. Para operacoes de escrita e necessario cargo de gestor. ") +
-    "7. NUNCA execute sp_wipe_all_data ou sp_deletar_transacao_admin.";
+      " 6. Como gestor voce pode: receitas, despesas, transferencias, estornos, criar/editar/excluir metas, produtos, insumos e dividas." :
+      " 6. Como membro voce pode apenas consultar.") +
+    " 7. NUNCA execute sp_wipe_all_data ou sp_deletar_transacao_admin.";
   return prompt;
 }
 

@@ -188,6 +188,20 @@ export const TOOLS: ToolDefinition[] = [
     }
   },
   {
+    "name": "propor_criar_divida",
+    "description": "Propoe o registro de uma divida ou controle interno. Requer confirmacao do usuario.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "nome": { "type": "string", "description": "Nome da pessoa ou unidade devedora" },
+        "valor": { "type": "string", "description": "Valor da divida em reais" },
+        "obs": { "type": "string", "description": "Observacao opcional" },
+        "date": { "type": "string", "description": "Data no formato YYYY-MM-DD (opcional)" }
+      },
+      "required": ["nome", "valor"]
+    }
+  },
+  {
     "name": "propor_registrar_receita",
     "description": "Propoe registro de uma receita. Requer confirmacao do usuario.",
     "parameters": {
@@ -608,6 +622,6 @@ export const TOOLS: ToolDefinition[] = [
   }
 ];
 
-export const WRITE_TOOLS = new Set(["propor_registrar_receita", "propor_registrar_despesa", "propor_transferencia", "propor_estorno", "propor_criar_meta", "propor_atualizar_meta", "propor_excluir_meta", "propor_criar_produto", "propor_atualizar_produto", "propor_excluir_produto", "propor_criar_insumo", "propor_atualizar_insumo", "propor_excluir_insumo"]);
+export const WRITE_TOOLS = new Set(["propor_registrar_receita", "propor_registrar_despesa", "propor_transferencia", "propor_estorno", "propor_criar_meta", "propor_atualizar_meta", "propor_excluir_meta", "propor_criar_produto", "propor_atualizar_produto", "propor_excluir_produto", "propor_criar_insumo", "propor_atualizar_insumo", "propor_excluir_insumo", "propor_criar_divida"]);
 export const READ_TOOLS = new Set(["get_saldo_consolidado", "get_saldo_caixa", "get_transacoes_recentes", "get_resumo_mensal", "get_metas", "get_produtos", "get_materiais", "get_ranking_vendedores"]);
-export const MANAGER_TOOLS = new Set(["propor_registrar_receita", "propor_registrar_despesa", "propor_transferencia", "propor_estorno", "propor_criar_meta", "propor_atualizar_meta", "propor_excluir_meta", "propor_criar_produto", "propor_atualizar_produto", "propor_excluir_produto", "propor_criar_insumo", "propor_atualizar_insumo", "propor_excluir_insumo", "get_dividas"]);
+export const MANAGER_TOOLS = new Set(["propor_registrar_receita", "propor_registrar_despesa", "propor_transferencia", "propor_estorno", "propor_criar_meta", "propor_atualizar_meta", "propor_excluir_meta", "propor_criar_produto", "propor_atualizar_produto", "propor_excluir_produto", "propor_criar_insumo", "propor_atualizar_insumo", "propor_excluir_insumo", "propor_criar_divida", "get_dividas"]);
