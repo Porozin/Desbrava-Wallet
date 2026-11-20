@@ -252,10 +252,10 @@ async function executeConfirmedOperation(
   userJwt: string,
 ): Promise<{ success: boolean; message: string; data?: unknown }> {
 
-  // Cliente autenticado como o usuario (auth.uid() funciona nas RPCs)
+  // Cliente autenticado como o usuario — usa a publishable key + JWT do usuario
   const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-  const svcKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-  const supabaseAsUser = createClient(supabaseUrl, svcKey, {
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+  const supabaseAsUser = createClient(supabaseUrl, anonKey, {
     global: { headers: { Authorization: "Bearer " + userJwt } },
     auth: { persistSession: false },
   });
@@ -278,6 +278,15 @@ async function executeConfirmedOperation(
     return { success: false, message: "Esta operacao expirou. Por favor, solicite novamente." };
   }
 
+  // Idempotencia: marca como processing atomicamente antes de executar
+  const { error: lockErr } = await supabase
+    .from("ai_pending_operations")
+    .update({ status: "processing" })
+    .eq("id", op.id)
+    .eq("status", "pending");
+  if (lockErr) return { success: false, message: "Falha ao reservar operacao. Tente novamente." };
+
+
   const params = op.operation_params as Record<string, unknown>;
   const mutationId = crypto.randomUUID();
   let result: unknown;
@@ -285,6 +294,11 @@ async function executeConfirmedOperation(
   try {
     switch (op.operation_type) {
       case "registrar_receita": {
+        const amountNum = parseFloat(String(params.amount).replace(",","."));
+        if (!params.cash_box_id || !["geral","doceria","vendas"].includes(String(params.cash_box_id))) return { success: false, message: "Caixa invalido." };
+        if (!isFinite(amountNum) || amountNum <= 0) return { success: false, message: "Valor invalido." };
+        if (!params.category || !String(params.category).trim()) return { success: false, message: "Categoria obrigatoria." };
+        if (!params.description || !String(params.description).trim()) return { success: false, message: "Descricao obrigatoria." };
         const { data, error } = await supabaseAsUser.rpc("sp_registrar_transacao_oficial", {
           p_client_mutation_id: mutationId,
           p_cash_box_id: params.cash_box_id,
@@ -301,6 +315,11 @@ async function executeConfirmedOperation(
         break;
       }
       case "registrar_despesa": {
+        const amountNum2 = parseFloat(String(params.amount).replace(",","."));
+        if (!params.cash_box_id || !["geral","doceria","vendas"].includes(String(params.cash_box_id))) return { success: false, message: "Caixa invalido." };
+        if (!isFinite(amountNum2) || amountNum2 <= 0) return { success: false, message: "Valor invalido." };
+        if (!params.category || !String(params.category).trim()) return { success: false, message: "Categoria obrigatoria." };
+        if (!params.description || !String(params.description).trim()) return { success: false, message: "Descricao obrigatoria." };
         const { data, error } = await supabaseAsUser.rpc("sp_registrar_transacao_oficial", {
           p_client_mutation_id: mutationId,
           p_cash_box_id: params.cash_box_id,
@@ -440,33 +459,13 @@ Deno.serve(async (req: Request) => {
 
   try {
     const authHeader = req.headers.get("authorization");
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-    const publishableKeys = Deno.env.get("SUPABASE_PUBLISHABLE_KEYS") ?? "";
-    const secretKeys = Deno.env.get("SUPABASE_SECRET_KEYS") ?? "";
-    const svcKey = SUPABASE_SERVICE_ROLE_KEY;
-
-    // DEBUG: retorna diagnostico
-    const debug = {
-      has_auth_header: !!authHeader,
-      auth_header_prefix: authHeader ? authHeader.slice(0, 20) : null,
-      supabase_url: SUPABASE_URL ? SUPABASE_URL.slice(0, 40) : "MISSING",
-      has_service_role: !!svcKey,
-      service_role_prefix: svcKey ? svcKey.slice(0, 15) : "MISSING",
-      has_anon_key: !!anonKey,
-      anon_key_prefix: anonKey ? anonKey.slice(0, 15) : "MISSING",
-      has_publishable_keys: !!publishableKeys,
-      publishable_keys_prefix: publishableKeys ? publishableKeys.slice(0, 15) : "MISSING",
-      has_secret_keys: !!secretKeys,
-      has_nvidia: !!NVIDIA_API_KEY,
-      nvidia_prefix: NVIDIA_API_KEY ? NVIDIA_API_KEY.slice(0, 10) : "MISSING",
-    };
 
     if (!authHeader) {
-      return Response.json({ error: "Nao autenticado.", debug }, { status: 401, headers: CORS });
+      return Response.json({ error: "Nao autenticado." }, { status: 401, headers: CORS });
     }
 
     // Tenta autenticar com cada key disponivel
-    const supabaseAdmin = createClient(SUPABASE_URL, svcKey);
+    const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     // Extrai JWT puro do header (remove "Bearer ")
     const jwt = authHeader.replace(/^Bearer /, "").trim();
@@ -474,7 +473,7 @@ Deno.serve(async (req: Request) => {
     // Valida o JWT usando o cliente admin (service_role pode verificar qualquer token)
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(jwt);
     if (authError || !user) {
-      return Response.json({ error: "Token invalido.", auth_error: authError?.message, debug }, { status: 401, headers: CORS });
+      return Response.json({ error: "Token invalido.", auth_error: authError?.message }, { status: 401, headers: CORS });
     }
 
     // 3. Busca o papel do usuario

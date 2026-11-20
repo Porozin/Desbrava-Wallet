@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as DebugAtlasRouteImport } from './routes/debug-atlas'
 import { Route as TransparenciaRouteImport } from './routes/transparencia'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedClubeRouteImport } from './routes/_authenticated/clube'
@@ -25,6 +26,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DebugAtlasRoute = DebugAtlasRouteImport.update({
+  id: '/debug-atlas',
+  path: '/debug-atlas',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TransparenciaRoute = TransparenciaRouteImport.update({
@@ -61,6 +67,7 @@ const AuthenticatedVendasRoute = AuthenticatedVendasRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthRoute
+  '/debug-atlas': typeof DebugAtlasRoute
   '/transparencia': typeof TransparenciaRoute
   '/clube': typeof AuthenticatedClubeRoute
   '/doceria': typeof AuthenticatedDoceriaRoute
@@ -69,6 +76,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
+  '/debug-atlas': typeof DebugAtlasRoute
   '/transparencia': typeof TransparenciaRoute
   '/clube': typeof AuthenticatedClubeRoute
   '/doceria': typeof AuthenticatedDoceriaRoute
@@ -80,6 +88,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/debug-atlas': typeof DebugAtlasRoute
   '/transparencia': typeof TransparenciaRoute
   '/_authenticated/clube': typeof AuthenticatedClubeRoute
   '/_authenticated/doceria': typeof AuthenticatedDoceriaRoute
@@ -92,6 +101,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/debug-atlas'
     | '/transparencia'
     | '/clube'
     | '/doceria'
@@ -100,6 +110,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
+    | '/debug-atlas'
     | '/transparencia'
     | '/clube'
     | '/doceria'
@@ -110,6 +121,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_authenticated'
     | '/auth'
+    | '/debug-atlas'
     | '/transparencia'
     | '/_authenticated/clube'
     | '/_authenticated/doceria'
@@ -121,6 +133,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  DebugAtlasRoute: typeof DebugAtlasRoute
   TransparenciaRoute: typeof TransparenciaRoute
 }
 
@@ -138,6 +151,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/debug-atlas': {
+      id: '/debug-atlas'
+      path: '/debug-atlas'
+      fullPath: '/debug-atlas'
+      preLoaderRoute: typeof DebugAtlasRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/transparencia': {
@@ -207,6 +227,7 @@ const AuthenticatedRouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  DebugAtlasRoute: DebugAtlasRoute,
   TransparenciaRoute: TransparenciaRoute,
 }
 export const routeTree = rootRouteImport
