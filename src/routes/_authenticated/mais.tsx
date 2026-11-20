@@ -485,9 +485,9 @@ function Mais() {
             <DrawerTitle className="text-lg font-black text-foreground">Hierarquia & Permissões</DrawerTitle>
             <p className="text-xs text-muted-foreground">
               {isAdmin
-                ? "Como Administrador, você pode atribuir qualquer cargo (Admin, Diretor, Conselheiro ou Desbravador)."
+                ? "Como Administrador, você pode atribuir qualquer cargo (Admin, Diretor, Tesoureiro, Conselheiro ou Desbravador)."
                 : isAdminOrDiretor
-                ? "Como Diretor, você pode atribuir os cargos de Diretor, Conselheiro ou Desbravador."
+                ? "Como Diretor, você pode atribuir os cargos de Diretor, Tesoureiro, Conselheiro ou Desbravador."
                 : "Como Conselheiro, você pode validar membros como Desbravadores."}
             </p>
           </DrawerHeader>
@@ -515,6 +515,7 @@ function Mais() {
                     >
                       {isAdmin && <option value="admin">Admin</option>}
                       {(isAdmin || isAdminOrDiretor) && <option value="diretor">Diretor</option>}
+                      {(isAdmin || isAdminOrDiretor) && <option value="tesoureiro">Tesoureiro</option>}
                       {(isAdmin || isAdminOrDiretor) && <option value="conselheiro">Conselheiro</option>}
                       <option value="desbravador">Desbravador</option>
                     </select>

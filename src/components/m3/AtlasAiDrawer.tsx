@@ -9,6 +9,16 @@ const OPERATION_LABELS: Record<string, string> = {
   registrar_despesa: "Registrar Despesa",
   registrar_transferencia: "Transferência entre Caixas",
   estorno: "Estorno de Movimentação",
+  criar_meta: "Criar Meta",
+  atualizar_meta: "Atualizar Meta",
+  excluir_meta: "Excluir Meta",
+  criar_produto: "Criar Produto",
+  atualizar_produto: "Editar Produto",
+  excluir_produto: "Excluir Produto",
+  criar_insumo: "Criar Insumo",
+  atualizar_insumo: "Editar Insumo",
+  excluir_insumo: "Excluir Insumo",
+  criar_divida: "Registrar Dívida",
 };
 
 const CASH_BOX_LABELS: Record<string, string> = {

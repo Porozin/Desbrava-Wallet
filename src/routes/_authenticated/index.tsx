@@ -113,7 +113,7 @@ function Home() {
         </div>
         <div>
           <span className="text-3xl sm:text-4xl font-black tracking-tight">
-            {brl(consolidation.total_balance)}
+            {brl(consolidation.consolidated.balance)}
           </span>
           <p className="text-xs opacity-80 mt-1">
             Soma invariante dos 3 caixas oficiais: Geral + Doceria + Vendas Rápidas
