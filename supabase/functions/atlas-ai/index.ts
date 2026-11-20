@@ -256,7 +256,7 @@ async function executeConfirmedOperation(
   const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
   const svcKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
   const supabaseAsUser = createClient(supabaseUrl, svcKey, {
-    global: { headers: { authorization: "Bearer " + userJwt } },
+    global: { headers: { Authorization: "Bearer " + userJwt } },
     auth: { persistSession: false },
   });
 
@@ -398,8 +398,12 @@ async function executeConfirmedOperation(
     return { success: true, message: "Operacao executada com sucesso.", data: result };
 
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : "Erro desconhecido";
-    return { success: false, message: `Falha ao executar: ${msg}` };
+    const sbErr = err as any;
+    const msg = sbErr?.message ?? sbErr?.error_description ?? (typeof sbErr === "string" ? sbErr : "Erro desconhecido");
+    const details = [sbErr?.code, sbErr?.details, sbErr?.hint].filter(Boolean).join(" | ");
+    console.error("[Atlas AI] error:", JSON.stringify({ msg, details }));
+    const userMsg = msg.includes("Sessao") ? "Sessao expirada, faca login novamente." : msg.includes("Saldo") ? msg : "Falha: " + msg + (details ? " (" + details + ")" : "");
+    return { success: false, message: userMsg };
   }
 }
 
