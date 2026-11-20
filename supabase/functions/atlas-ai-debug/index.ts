@@ -62,6 +62,23 @@ Deno.serve(async (req: Request) => {
     if (mode === "confirm" && confirmation_token) {
       steps.push("mode_confirm");
 
+      // Teste de INSERT direto para diagnóstico
+      const testToken = crypto.randomUUID();
+      const { error: testInsertErr } = await admin.from("ai_pending_operations").insert({
+        user_id: user.id,
+        session_id: "debug-test",
+        operation_type: "test",
+        operation_params: { test: true },
+        confirmation_token: testToken,
+        status: "pending",
+      });
+      log.insert_test = { ok: !testInsertErr, error: testInsertErr?.message ?? null, code: (testInsertErr as any)?.code ?? null };
+      if (!testInsertErr) {
+        // Limpa o registro de teste
+        await admin.from("ai_pending_operations").delete().eq("confirmation_token", testToken);
+      }
+      steps.push("insert_test_done");
+
       // Busca operacao pendente via admin
       const { data: op, error: opErr } = await admin
         .from("ai_pending_operations")
@@ -71,7 +88,17 @@ Deno.serve(async (req: Request) => {
         .single();
 
       log.pending_op = { found: !!op, error: opErr?.message ?? null, status: op?.status, type: op?.operation_type, params: op?.operation_params };
-      if (!op) return Response.json({ ...log, error: "op_not_found" }, { headers: CORS });
+      if (!op) {
+        // Diagnóstico extra: lista as últimas operações do usuário para confirmar se o INSERT está funcionando
+        const { data: recent } = await admin
+          .from("ai_pending_operations")
+          .select("id, confirmation_token, status, created_at, expires_at")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(5);
+        log.recent_ops = recent ?? [];
+        return Response.json({ ...log, error: "op_not_found" }, { headers: CORS });
+      }
       steps.push("op_found");
 
       // Testa supabaseAsUser com anonKey + JWT

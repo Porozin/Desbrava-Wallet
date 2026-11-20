@@ -219,7 +219,7 @@ async function executeTool(
       const operationType = toolName.replace("propor_", "");
       const token = crypto.randomUUID();
 
-      await supabase.from("ai_pending_operations").insert({
+      const { error: insertErr } = await supabase.from("ai_pending_operations").insert({
         user_id: userId,
         session_id: sessionId,
         operation_type: operationType,
@@ -228,6 +228,19 @@ async function executeTool(
         expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
         status: "pending",
       });
+
+      if (insertErr) {
+        console.error("[Atlas AI] INSERT ai_pending_operations failed:", JSON.stringify({ msg: insertErr.message, code: (insertErr as any).code, details: (insertErr as any).details }));
+        return {
+          confirmation_required: true,
+          confirmation_token: token,
+          insert_error: insertErr.message,
+          operation_type: operationType,
+          operation_params: args,
+          message: "Falha ao salvar proposta: " + insertErr.message,
+          expires_in_minutes: 5,
+        };
+      }
 
       return {
         confirmation_required: true,
@@ -565,6 +578,10 @@ Deno.serve(async (req: Request) => {
     } else {
       assistantText = assistantMsg?.content ?? "";
     }
+
+    // Limpa qualquer tool_call em formato XML que o modelo possa ter colocado no texto
+    assistantText = assistantText.replace(/<tool_call>[\s\S]*?<\/tool_call>/g, "").trim();
+    assistantText = assistantText.replace(/<function[\s\S]*?<\/function>/g, "").trim();
 
         // 11. Extrai token de confirmacao se houver proposta de escrita
     const pendingOp = toolResults.find((tr) => (tr.result as any)?.confirmation_required);
