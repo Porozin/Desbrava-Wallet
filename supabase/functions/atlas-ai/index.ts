@@ -1,5 +1,5 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { TOOLS, WRITE_TOOLS, MANAGER_TOOLS, READ_TOOLS } from "./tools.ts";
+import { TOOLS, MANAGER_TOOLS, READ_TOOLS } from "./tools.ts";
 
 const NVIDIA_API_KEY = Deno.env.get("NVIDIA_API_KEY") ?? "";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
@@ -540,13 +540,13 @@ Deno.serve(async (req: Request) => {
       function: { name: t.name, description: t.description, parameters: t.parameters },
     }));
     const messages = [
-      { role: "system", content: buildSystemPrompt(userRole, isManager, consolidado) },
+      { role: "system", content: systemPrompt },
       ...history.map((m) => ({ role: m.role, content: m.content })),
       { role: "user", content: message },
     ];
-    const toolResults = [];
+    const toolResults: Array<{ name: string; result: unknown }> = [];
     let assistantText = "";
-    const toolCallsLog = [];
+    const toolCallsLog: Array<{ name: string; args: unknown }> = [];
     const nvidiaRes = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": "Bearer " + NVIDIA_API_KEY },
@@ -583,7 +583,7 @@ Deno.serve(async (req: Request) => {
     assistantText = assistantText.replace(/<tool_call>[\s\S]*?<\/tool_call>/g, "").trim();
     assistantText = assistantText.replace(/<function[\s\S]*?<\/function>/g, "").trim();
 
-        // 11. Extrai token de confirmacao se houver proposta de escrita
+    // 11. Extrai token de confirmacao se houver proposta de escrita
     const pendingOp = toolResults.find((tr) => (tr.result as any)?.confirmation_required);
     const confirmationToken = pendingOp ? (pendingOp.result as any).confirmation_token : null;
     const operationProposal = pendingOp ? (pendingOp.result as any) : null;
