@@ -1,7 +1,6 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "@tanstack/react-router";
 import { Landmark, Cake, Zap, UserCircle2, Home } from "lucide-react";
-import { usePendingTransactions, useIsFinancialManager } from "@/lib/data";
 
 interface NavItem {
   to: "/" | "/clube" | "/doceria" | "/vendas" | "/mais";
@@ -17,11 +16,58 @@ const navItems: NavItem[] = [
   { to: "/mais", label: "Perfil", icon: UserCircle2 },
 ];
 
+// Componente separado que só roda no client
+function PendingBadge() {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    // Importa dinamicamente para evitar SSR
+    let unsub = false;
+    import("@/lib/data").then(({ supabase }) => {
+      if (unsub) return;
+      // Conta pendentes via query direta
+      supabase
+        .from("transactions")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "pendente")
+        .then(({ count: c }) => {
+          if (!unsub) setCount(c ?? 0);
+        });
+
+      // Realtime
+      const channel = supabase
+        .channel("pending-badge")
+        .on("postgres_changes", { event: "*", schema: "public", table: "transactions" }, () => {
+          supabase
+            .from("transactions")
+            .select("id", { count: "exact", head: true })
+            .eq("status", "pendente")
+            .then(({ count: c }) => {
+              if (!unsub) setCount(c ?? 0);
+            });
+        })
+        .subscribe();
+
+      return () => {
+        unsub = true;
+        supabase.removeChannel(channel);
+      };
+    });
+
+    return () => { unsub = true; };
+  }, []);
+
+  if (count === 0) return null;
+
+  return (
+    <span className="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full bg-destructive text-white text-[9px] font-black">
+      {count > 9 ? "9+" : count}
+    </span>
+  );
+}
+
 export const BottomNav: React.FC = () => {
   const { pathname } = useLocation();
-  const isManager = useIsFinancialManager();
-  const pending = usePendingTransactions();
-  const pendingCount = isManager ? pending.length : 0;
 
   return (
     <nav
@@ -31,7 +77,7 @@ export const BottomNav: React.FC = () => {
       {navItems.map((item) => {
         const Icon = item.icon;
         const isActive = item.to === "/" ? pathname === "/" : pathname.startsWith(item.to);
-        const showBadge = item.to === "/mais" && pendingCount > 0;
+        const showBadge = item.to === "/mais";
 
         return (
           <Link
@@ -39,7 +85,6 @@ export const BottomNav: React.FC = () => {
             to={item.to}
             className="flex flex-col items-center justify-center flex-1 py-1 group focus:outline-none"
           >
-            {/* Pill Indicator ativo Material 3 */}
             <div className="relative">
               <div
                 className={`flex items-center justify-center w-16 h-8 rounded-full transition-all duration-200 ${
@@ -50,11 +95,7 @@ export const BottomNav: React.FC = () => {
               >
                 <Icon className="w-5 h-5" />
               </div>
-              {showBadge && (
-                <span className="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full bg-destructive text-white text-[9px] font-black">
-                  {pendingCount > 9 ? "9+" : pendingCount}
-                </span>
-              )}
+              {showBadge && <PendingBadge />}
             </div>
             <span
               className={`text-xs mt-1 transition-all ${
