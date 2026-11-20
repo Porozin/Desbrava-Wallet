@@ -55,6 +55,7 @@ export function ProductRecipeDrawer({
       setConfirmDelete(false);
     }
   }, [open, produto]);
+  const custoTotalIngredientes = ingredientes.reduce((acc, cur) => acc + cur.custo_subtotal, 0);
   const precoVendaNum = Number(precoVenda.replace(",", ".")) || 0;
   const comissaoNum = Number(comissao.replace(",", ".")) || 0;
   const lucroEstimado = precoVendaNum - custoTotalIngredientes - comissaoNum;
