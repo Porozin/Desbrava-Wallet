@@ -3,7 +3,7 @@ import { Minus, Plus, ShoppingCart, X, Check, Cake, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { brl, toCents, type CashBoxId, type Module } from "@/lib/finance";
-import { addTransaction, useMe, type Produto } from "@/lib/data";
+import { addTransaction, requestExpense, useMe, useIsConselheiro, type Produto } from "@/lib/data";
 import { useHaptic } from "@/hooks/useHaptic";
 
 interface CartItem {
@@ -30,6 +30,7 @@ export function PdvGrid({ produtos, module, boxId, defaultIcon = "cake" }: PdvGr
   const qc = useQueryClient();
   const { data: me } = useMe();
   const { vibrate } = useHaptic();
+  const isConselheiro = useIsConselheiro();
 
   const [cart, setCart] = useState<CartItem[]>([]);
   const [payment, setPayment] = useState("dinheiro");
@@ -69,29 +70,46 @@ export function PdvGrid({ produtos, module, boxId, defaultIcon = "cake" }: PdvGr
         .map((i) => `${i.qty}x ${i.produto.nome}`)
         .join(", ");
 
-      await addTransaction({
-        module,
-        cash_box_id: boxId,
-        kind: "receita",
-        amount: total,
-        amount_cents: totalCents,
-        category: "Venda PDV",
-        description,
-        payment_method: payment as any,
-        date: new Date().toISOString().slice(0, 10),
-        seller: seller.trim() || undefined,
-      });
-
-      vibrate("success");
-      setConfirmed(true);
-      qc.invalidateQueries({ queryKey: ["transactions"] });
-
-      // Reset após 1.5s
-      setTimeout(() => {
-        setCart([]);
-        setConfirmed(false);
-        setSaving(false);
-      }, 1500);
+      if (isConselheiro) {
+        // Conselheiro cria solicitação pendente — não confirma direto
+        await requestExpense({
+          cashBoxId: boxId,
+          amountCents: totalCents,
+          category: "Venda PDV",
+          description,
+          paymentMethod: payment as any,
+        });
+        vibrate("success");
+        setConfirmed(true);
+        qc.invalidateQueries({ queryKey: ["transactions"] });
+        setTimeout(() => {
+          setCart([]);
+          setConfirmed(false);
+          setSaving(false);
+        }, 2000);
+      } else {
+        // Gestor registra diretamente
+        await addTransaction({
+          module,
+          cash_box_id: boxId,
+          kind: "receita",
+          amount: total,
+          amount_cents: totalCents,
+          category: "Venda PDV",
+          description,
+          payment_method: payment as any,
+          date: new Date().toISOString().slice(0, 10),
+          seller: seller.trim() || undefined,
+        });
+        vibrate("success");
+        setConfirmed(true);
+        qc.invalidateQueries({ queryKey: ["transactions"] });
+        setTimeout(() => {
+          setCart([]);
+          setConfirmed(false);
+          setSaving(false);
+        }, 1500);
+      }
     } catch (err: any) {
       toast.error(err?.message || "Falha ao registrar venda.");
       vibrate("error");
@@ -240,9 +258,13 @@ export function PdvGrid({ produtos, module, boxId, defaultIcon = "cake" }: PdvGr
             }`}
           >
             {confirmed ? (
-              <><Check className="size-5" /> Venda Registrada!</>
+              isConselheiro
+                ? <><Check className="size-5" /> Solicitação Enviada!</>
+                : <><Check className="size-5" /> Venda Registrada!</>
             ) : saving ? (
               "Registrando…"
+            ) : isConselheiro ? (
+              <><ShoppingCart className="size-5" /> Enviar Solicitação — {brl(total)}</>
             ) : (
               <><ShoppingCart className="size-5" /> Confirmar Venda — {brl(total)}</>
             )}

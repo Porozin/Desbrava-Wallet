@@ -87,6 +87,10 @@ export function useBoxTransactions(boxId: CashBoxId) {
   });
 }
 
+export function usePendingTransactions() {
+  return useTransactions().filter((t) => t.status === "pendente");
+}
+
 // --- Reservas de Saldo ---
 const RES_KEY = ["reservations"] as const;
 

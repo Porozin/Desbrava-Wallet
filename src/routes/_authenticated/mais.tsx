@@ -13,8 +13,7 @@ import {
   Plus,
   CheckCircle2,
   Clock,
-  Users2,
-  UserCheck,
+  Users2,  UserCheck,
   FileText,
   Globe,
   Share2,
@@ -41,12 +40,15 @@ import {
   useIsConselheiro,
   useAllUsers,
   updateUserRole,
+  usePendingTransactions,
+  useIsFinancialManager,
 } from "@/lib/data";
 import { supabase } from "@/integrations/supabase/client";
 import { generatePrintReport } from "@/lib/printReport";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { ReportsCenterDrawer } from "@/components/m3/ReportsCenterDrawer";
 import { WipeDataDrawer } from "@/components/m3/WipeDataDrawer";
+import { PendingApprovalsDrawer } from "@/components/m3/PendingApprovalsDrawer";
 
 export const Route = createFileRoute("/_authenticated/mais")({
   head: () => ({
@@ -68,6 +70,9 @@ function Mais() {
   const isAdminOrDiretor = useIsAdminOrDiretor();
   const isAdmin = useIsAdmin();
   const isConselheiro = useIsConselheiro();
+  const isManager = useIsFinancialManager();
+  const pendingTx = usePendingTransactions();
+  const pendingCount = isManager ? pendingTx.length : 0;
   const canManageAnyUser = isAdmin || isAdminOrDiretor || isConselheiro;
 
   const qc = useQueryClient();
@@ -80,6 +85,7 @@ function Mais() {
   const [usersDrawerOpen, setUsersDrawerOpen] = useState(false);
   const [reportsDrawerOpen, setReportsDrawerOpen] = useState(false);
   const [wipeDrawerOpen, setWipeDrawerOpen] = useState(false);
+  const [approvalsDrawerOpen, setApprovalsDrawerOpen] = useState(false);
   const [backupWebhook, setBackupWebhook] = useState(
     () => localStorage.getItem("gda_backup_webhook") || ""
   );
@@ -253,6 +259,13 @@ function Mais() {
   }
 
   const items = [
+    ...(isManager && pendingCount > 0 ? [{
+      icon: Clock,
+      label: `Solicitações Pendentes (${pendingCount})`,
+      sub: "Aprovar ou rejeitar registros enviados por conselheiros",
+      onClick: () => setApprovalsDrawerOpen(true),
+      highlight: true,
+    }] : []),
     {
       icon: FileText,
       label: "Central de Histórico & Relatórios",
@@ -679,6 +692,12 @@ function Mais() {
           </button>
         </DrawerContent>
       </Drawer>
+
+      {/* Drawer: Aprovações de Solicitações */}
+      <PendingApprovalsDrawer
+        open={approvalsDrawerOpen}
+        onOpenChange={setApprovalsDrawerOpen}
+      />
 
       {/* Drawer: Limpeza Total — exclusivo para Admin */}
       {isAdmin && (
