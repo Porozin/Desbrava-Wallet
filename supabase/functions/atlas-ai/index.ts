@@ -1,12 +1,12 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { TOOLS, WRITE_TOOLS, MANAGER_TOOLS, READ_TOOLS } from "./tools.ts";
 
-const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY") ?? "";
+const NVIDIA_API_KEY = Deno.env.get("NVIDIA_API_KEY") ?? "";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
-const GEMINI_URL =
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
+const NVIDIA_URL = "https://integrate.api.nvidia.com/v1/chat/completions";
+const NVIDIA_MODEL = "nvidia/nemotron-3.5-bolt-e4b";
 
 // ========== CORS ==========
 const CORS = {
@@ -194,11 +194,28 @@ async function executeTool(
       return data ?? [];
     }
 
+    case "get_materiais": {
+      let query = supabase.from("materiais").select("*").order("nome");
+      if (args.modulo) query = query.eq("modulo", String(args.modulo));
+      const { data, error } = await query;
+      if (error) return { error: error.message };
+      return data ?? [];
+    }
+
     // ===== Ferramentas de escrita: criam proposta + token =====
     case "propor_registrar_receita":
     case "propor_registrar_despesa":
     case "propor_transferencia":
-    case "propor_estorno": {
+    case "propor_estorno":
+    case "propor_criar_meta":
+    case "propor_atualizar_meta":
+    case "propor_excluir_meta":
+    case "propor_criar_produto":
+    case "propor_atualizar_produto":
+    case "propor_excluir_produto":
+    case "propor_criar_insumo":
+    case "propor_atualizar_insumo":
+    case "propor_excluir_insumo": {
       const operationType = toolName.replace("propor_", "");
       const token = crypto.randomUUID();
 
@@ -232,7 +249,16 @@ async function executeConfirmedOperation(
   token: string,
   userId: string,
   supabase: ReturnType<typeof createClient>,
+  userJwt: string,
 ): Promise<{ success: boolean; message: string; data?: unknown }> {
+
+  // Cliente autenticado como o usuario (auth.uid() funciona nas RPCs)
+  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+  const svcKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  const supabaseAsUser = createClient(supabaseUrl, svcKey, {
+    global: { headers: { authorization: "Bearer " + userJwt } },
+    auth: { persistSession: false },
+  });
 
   // Busca a operacao pendente
   const { data: op, error } = await supabase
@@ -259,7 +285,7 @@ async function executeConfirmedOperation(
   try {
     switch (op.operation_type) {
       case "registrar_receita": {
-        const { data, error } = await supabase.rpc("sp_registrar_transacao_oficial", {
+        const { data, error } = await supabaseAsUser.rpc("sp_registrar_transacao_oficial", {
           p_client_mutation_id: mutationId,
           p_cash_box_id: params.cash_box_id,
           p_kind: "receita",
@@ -275,7 +301,7 @@ async function executeConfirmedOperation(
         break;
       }
       case "registrar_despesa": {
-        const { data, error } = await supabase.rpc("sp_registrar_transacao_oficial", {
+        const { data, error } = await supabaseAsUser.rpc("sp_registrar_transacao_oficial", {
           p_client_mutation_id: mutationId,
           p_cash_box_id: params.cash_box_id,
           p_kind: "despesa",
@@ -291,7 +317,7 @@ async function executeConfirmedOperation(
         break;
       }
       case "registrar_transferencia": {
-        const { data, error } = await supabase.rpc("sp_registrar_transferencia", {
+        const { data, error } = await supabaseAsUser.rpc("sp_registrar_transferencia", {
           p_client_mutation_id: mutationId,
           p_source_box: params.source_box,
           p_destination_box: params.destination_box,
@@ -303,7 +329,7 @@ async function executeConfirmedOperation(
         break;
       }
       case "estorno": {
-        const { data, error } = await supabase.rpc("sp_estornar_transacao", {
+        const { data, error } = await supabaseAsUser.rpc("sp_estornar_transacao", {
           p_transaction_id: params.transaction_id,
           p_reverse_reason: params.reverse_reason,
         });
@@ -311,8 +337,56 @@ async function executeConfirmedOperation(
         result = { compensating_transaction_id: data };
         break;
       }
+      case "criar_meta": {
+        const { error: e1 } = await supabaseAsUser.from("metas").insert({ modulo: params.modulo, descricao: params.descricao, valor_alvo: parseFloat(String(params.valor_alvo)), status: params.status ?? "aprovada", sugerido_por: null });
+        if (e1) throw e1; result = { success: true }; break;
+      }
+      case "atualizar_meta": {
+        const ch: Record<string,unknown> = {};
+        if (params.descricao) ch.descricao = params.descricao;
+        if (params.valor_alvo) ch.valor_alvo = parseFloat(String(params.valor_alvo));
+        if (params.status) ch.status = params.status;
+        const { error: e2 } = await supabaseAsUser.from("metas").update(ch).eq("id", params.meta_id);
+        if (e2) throw e2; result = { success: true }; break;
+      }
+      case "excluir_meta": {
+        const { error: e3 } = await supabaseAsUser.from("metas").delete().eq("id", params.meta_id);
+        if (e3) throw e3; result = { success: true }; break;
+      }
+      case "criar_produto": {
+        const { error: e4 } = await supabaseAsUser.from("produtos").insert({ nome: params.nome, preco_venda: parseFloat(String(params.preco_venda)), custo: parseFloat(String(params.custo ?? 0)), comissao: parseFloat(String(params.comissao ?? 0)), modulo: params.modulo });
+        if (e4) throw e4; result = { success: true }; break;
+      }
+      case "atualizar_produto": {
+        const cp: Record<string,unknown> = {};
+        if (params.nome) cp.nome = params.nome;
+        if (params.preco_venda) cp.preco_venda = parseFloat(String(params.preco_venda));
+        if (params.custo) cp.custo = parseFloat(String(params.custo));
+        const { error: e5 } = await supabaseAsUser.from("produtos").update(cp).eq("id", params.produto_id);
+        if (e5) throw e5; result = { success: true }; break;
+      }
+      case "excluir_produto": {
+        const { error: e6 } = await supabaseAsUser.from("produtos").delete().eq("id", params.produto_id);
+        if (e6) throw e6; result = { success: true }; break;
+      }
+      case "criar_insumo": {
+        const { error: e7 } = await supabaseAsUser.from("materiais").insert({ nome: params.nome, quantidade: parseFloat(String(params.quantidade)), custo_total: parseFloat(String(params.custo_total)), unidade_medida: String(params.unidade_medida ?? "un"), modulo: params.modulo });
+        if (e7) throw e7; result = { success: true }; break;
+      }
+      case "atualizar_insumo": {
+        const ci: Record<string,unknown> = {};
+        if (params.nome) ci.nome = params.nome;
+        if (params.quantidade) ci.quantidade = parseFloat(String(params.quantidade));
+        if (params.custo_total) ci.custo_total = parseFloat(String(params.custo_total));
+        const { error: e8 } = await supabaseAsUser.from("materiais").update(ci).eq("id", params.insumo_id);
+        if (e8) throw e8; result = { success: true }; break;
+      }
+      case "excluir_insumo": {
+        const { error: e9 } = await supabaseAsUser.from("materiais").delete().eq("id", params.insumo_id);
+        if (e9) throw e9; result = { success: true }; break;
+      }
       default:
-        throw new Error(`Tipo de operacao desconhecido: ${op.operation_type}`);
+        throw new Error("Tipo de operacao desconhecido: " + op.operation_type);
     }
 
     // Marca como confirmada
@@ -340,21 +414,18 @@ function buildSystemPrompt(
     ? `Saldo consolidado atual: R$ ${(consolidado as any)?.consolidado?.saldo?.toFixed(2) ?? "N/A"}`
     : "Saldo consolidado: nao disponivel";
 
-  return `Voce e o Atlas AI, assistente financeiro do Clube de Desbravadores Guerreiros do Alto (GDA).
-Data de hoje: ${hoje}
-Cargo do usuario: ${userRole}
-${saldoStr}
-
-Regras fundamentais:
-- Responda SEMPRE em portugues brasileiro, de forma clara e objetiva.
-- Para QUALQUER operacao que modifique dados (lancamentos, transferencias, estornos), use as ferramentas "propor_*". NUNCA execute operacoes de escrita diretamente.
-- Apos usar uma ferramenta "propor_*", informe ao usuario os detalhes da operacao e aguarde sua confirmacao explicita.
-- Nunca invente dados financeiros. Use SEMPRE as ferramentas de leitura para consultar informacoes reais.
-- Se o usuario nao tiver permissao para uma operacao, explique claramente qual cargo e necessario.
-- ${isManager ? "Este usuario e um gestor financeiro e pode propor lancamentos e transferencias." : "Este usuario pode consultar informacoes mas nao pode propor operacoes de escrita."}
-- Nao execute sp_wipe_all_data, sp_deletar_transacao_admin ou qualquer operacao irreversivel de limpeza.
-- Ao apresentar valores monetarios, use o formato R$ X.XXX,XX.
-- Seja proativo: ao responder perguntas sobre saldo, apresente tambem uma analise breve (tendencia, alertas se saldo baixo, etc).`;
+  const prompt = "Voce e o Atlas AI, assistente financeiro do Clube de Desbravadores Guerreiros do Alto (GDA). " +
+    "Data: " + hoje + ". Cargo do usuario: " + userRole + ". " + saldoStr + " " +
+    "REGRAS: 1. Responda SEMPRE em portugues brasileiro claro e direto, sem formatacao markdown (sem asteriscos, sem #, sem hifens de lista, sem backticks). " +
+    "2. Para qualquer operacao que modifique dados use ferramentas propor_*. NUNCA execute escrita diretamente. " +
+    "3. Apos propor operacao, apresente detalhes e aguarde confirmacao do usuario. " +
+    "4. Nunca invente dados. Use ferramentas de leitura para consultar informacoes reais. " +
+    "5. Valores monetarios no formato R$ X.XXX,XX. " +
+    (isManager ?
+      "6. Voce pode propor: lancamentos, transferencias, estornos, criar/editar/excluir metas, produtos e insumos. " :
+      "6. Voce pode apenas consultar. Para operacoes de escrita e necessario cargo de gestor. ") +
+    "7. NUNCA execute sp_wipe_all_data ou sp_deletar_transacao_admin.";
+  return prompt;
 }
 
 // ========== Handler principal ==========
@@ -382,8 +453,8 @@ Deno.serve(async (req: Request) => {
       has_publishable_keys: !!publishableKeys,
       publishable_keys_prefix: publishableKeys ? publishableKeys.slice(0, 15) : "MISSING",
       has_secret_keys: !!secretKeys,
-      has_gemini: !!GEMINI_API_KEY,
-      gemini_prefix: GEMINI_API_KEY ? GEMINI_API_KEY.slice(0, 10) : "MISSING",
+      has_nvidia: !!NVIDIA_API_KEY,
+      nvidia_prefix: NVIDIA_API_KEY ? NVIDIA_API_KEY.slice(0, 10) : "MISSING",
     };
 
     if (!authHeader) {
@@ -413,7 +484,7 @@ Deno.serve(async (req: Request) => {
 
     // 5. Se e uma confirmacao de operacao pendente
     if (confirmation_token) {
-      const result = await executeConfirmedOperation(confirmation_token, user.id, supabaseAdmin);
+      const result = await executeConfirmedOperation(confirmation_token, user.id, supabaseAdmin, jwt);
 
       // Salva no historico
       await supabaseAdmin.from("ai_conversations").insert([
@@ -441,108 +512,58 @@ Deno.serve(async (req: Request) => {
       consolidado = data;
     } catch { /* silencioso */ }
 
-    // 7. Monta o payload para o Gemini
+    // 7. Monta o payload OpenAI (NVIDIA NIM)
     const systemPrompt = buildSystemPrompt(userRole, isManager, consolidado);
-
-    // Filtra ferramentas pelo role do usuario
     const allowedTools = TOOLS.filter((t) => {
       if (READ_TOOLS.has(t.name)) return true;
       if (MANAGER_TOOLS.has(t.name)) return isManager;
       return false;
     });
-
-    // Converte historico para o formato do Gemini
-    const contents = [
-      ...history.map((m) => ({
-        role: m.role === "assistant" ? "model" : "user",
-        parts: [{ text: m.content }],
-      })),
-      { role: "user", parts: [{ text: message }] },
+    const openaiTools = allowedTools.map((t) => ({
+      type: "function",
+      function: { name: t.name, description: t.description, parameters: t.parameters },
+    }));
+    const messages = [
+      { role: "system", content: buildSystemPrompt(userRole, isManager, consolidado) },
+      ...history.map((m) => ({ role: m.role, content: m.content })),
+      { role: "user", content: message },
     ];
-
-    const geminiPayload = {
-      system_instruction: { parts: [{ text: systemPrompt }] },
-      contents,
-      tools: [{ function_declarations: allowedTools }],
-      tool_config: { function_calling_config: { mode: "AUTO" } },
-      generation_config: {
-        temperature: 0.3,
-        max_output_tokens: 1024,
-      },
-    };
-
-    // 8. Chama o Gemini
-    const geminiRes = await fetch(`${GEMINI_URL}?key=${GEMINI_API_KEY}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(geminiPayload),
-    });
-
-    if (!geminiRes.ok) {
-      const errText = await geminiRes.text();
-      return Response.json({ error: "Falha ao chamar o modelo de IA.", gemini_status: geminiRes.status, gemini_error: errText.slice(0,500) }, { status: 502, headers: CORS });
-    }
-
-    const geminiData = await geminiRes.json();
-    const candidate = geminiData?.candidates?.[0];
-    const parts = candidate?.content?.parts ?? [];
-
-    // 9. Processa tool calls se houver
-    const toolResults: Array<{ name: string; result: unknown }> = [];
+    const toolResults = [];
     let assistantText = "";
-    const toolCallsLog: unknown[] = [];
-
-    for (const part of parts) {
-      if (part.functionCall) {
-        const { name, args } = part.functionCall;
+    const toolCallsLog = [];
+    const nvidiaRes = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + NVIDIA_API_KEY },
+      body: JSON.stringify({ model: "nvidia/nemotron-3.5-bolt-e4b", messages, tools: openaiTools, tool_choice: "auto", temperature: 0.3, max_tokens: 1024 }),
+    });
+    if (!nvidiaRes.ok) {
+      const errText = await nvidiaRes.text();
+      return Response.json({ error: "Falha ao chamar o modelo.", status: nvidiaRes.status, detail: errText.slice(0,400) }, { status: 502, headers: CORS });
+    }
+    const nvidiaData = await nvidiaRes.json();
+    const assistantMsg = nvidiaData?.choices?.[0]?.message;
+    if (assistantMsg?.tool_calls?.length) {
+      for (const tc of assistantMsg.tool_calls) {
+        const name = tc.function?.name ?? "";
+        let args = {};
+        try { args = JSON.parse(tc.function?.arguments ?? "{}"); } catch {}
         toolCallsLog.push({ name, args });
-
-        // Sanitizacao contra prompt injection: nao executa ferramentas com nomes nao listados
-        if (!allowedTools.find((t) => t.name === name)) {
-          toolResults.push({ name, result: { error: "Ferramenta nao autorizada." } });
-          continue;
-        }
-
-        const result = await executeTool(name, args ?? {}, supabaseAdmin, supabaseAdmin, isManager, user.id, session_id);
+        if (!allowedTools.find((t) => t.name === name)) { toolResults.push({ name, result: { error: "Nao autorizada." } }); continue; }
+        const result = await executeTool(name, args, supabaseAdmin, supabaseAdmin, isManager, user.id, session_id);
         toolResults.push({ name, result });
       }
-      if (part.text) {
-        assistantText += part.text;
-      }
-    }
-
-    // 10. Se houve tool calls, faz segunda chamada ao Gemini com os resultados
-    if (toolResults.length > 0 && !assistantText) {
-      const contentsWithTools = [
-        ...contents,
-        { role: "model", parts },
-        {
-          role: "user",
-          parts: toolResults.map((tr) => ({
-            functionResponse: {
-              name: tr.name,
-              response: { content: tr.result },
-            },
-          })),
-        },
-      ];
-
-      const geminiRes2 = await fetch(`${GEMINI_URL}?key=${GEMINI_API_KEY}`, {
+      const msgs2 = [...messages, assistantMsg, ...toolResults.map((tr, i) => ({ role: "tool", tool_call_id: assistantMsg.tool_calls[i]?.id ?? tr.name, content: JSON.stringify(tr.result) }))];
+      const r2 = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...geminiPayload, contents: contentsWithTools }),
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + NVIDIA_API_KEY },
+        body: JSON.stringify({ model: "nvidia/nemotron-3.5-bolt-e4b", messages: msgs2, temperature: 0.3, max_tokens: 1024 }),
       });
-
-      if (geminiRes2.ok) {
-        const data2 = await geminiRes2.json();
-        assistantText = data2?.candidates?.[0]?.content?.parts
-          ?.filter((p: { text?: string }) => p.text)
-          ?.map((p: { text: string }) => p.text)
-          ?.join("") ?? "";
-      }
+      if (r2.ok) { const d2 = await r2.json(); assistantText = d2?.choices?.[0]?.message?.content ?? ""; }
+    } else {
+      assistantText = assistantMsg?.content ?? "";
     }
 
-    // 11. Extrai token de confirmacao se houver proposta de escrita
+        // 11. Extrai token de confirmacao se houver proposta de escrita
     const pendingOp = toolResults.find((tr) => (tr.result as any)?.confirmation_required);
     const confirmationToken = pendingOp ? (pendingOp.result as any).confirmation_token : null;
     const operationProposal = pendingOp ? (pendingOp.result as any) : null;
