@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
-import { Plus, Trash2, PackageCheck, Sparkles, AlertCircle, Zap, Flame } from "lucide-react";
+import { Plus, Trash2, PackageCheck, Sparkles, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { brl } from "@/lib/finance";
@@ -19,24 +19,6 @@ interface ProductRecipeDrawerProps {
   modulo: "doceria" | "vendas";
   produto?: Produto;
   onSuccess?: () => void;
-}
-
-// Insumos especiais que requerem cálculo diferenciado
-type TipoInsumoEspecial = "luz" | "gas" | null;
-
-interface InsumoEspecialConfig {
-  tipo: TipoInsumoEspecial;
-  // Luz: últimas 3 contas
-  contaLuz1?: string;
-  contaLuz2?: string;
-  contaLuz3?: string;
-  // Gás: valor do botijão e duração em dias
-  valorGas?: string;
-  duracaoGasDias?: string;
-  // Resultado calculado
-  custoMensalCalculado?: number;
-  // Rateio: quantos produtos divide esse custo por mês
-  produtosPorMes?: string;
 }
 
 export function ProductRecipeDrawer({
@@ -60,10 +42,6 @@ export function ProductRecipeDrawer({
   const [selectedMatId, setSelectedMatId] = useState("");
   const [qtdAdd, setQtdAdd] = useState("1");
 
-  // Insumo especial
-  const [especial, setEspecial] = useState<InsumoEspecialConfig>({ tipo: null });
-  const [showEspecial, setShowEspecial] = useState(false);
-
   useEffect(() => {
     if (open && produto) {
       setNome(produto.nome);
@@ -74,77 +52,13 @@ export function ProductRecipeDrawer({
     if (!open) {
       setNome(""); setPrecoVenda(""); setComissao("");
       setIngredientes([]); setSelectedMatId(""); setQtdAdd("1");
-      setConfirmDelete(false); setEspecial({ tipo: null }); setShowEspecial(false);
+      setConfirmDelete(false);
     }
   }, [open, produto]);
-
-  // Custo total = ingredientes normais + insumos especiais adicionados como ingredientes
-  const custoTotalIngredientes = ingredientes.reduce((acc, cur) => acc + cur.custo_subtotal, 0);
   const precoVendaNum = Number(precoVenda.replace(",", ".")) || 0;
   const comissaoNum = Number(comissao.replace(",", ".")) || 0;
   const lucroEstimado = precoVendaNum - custoTotalIngredientes - comissaoNum;
   const margem = precoVendaNum > 0 ? (lucroEstimado / precoVendaNum) * 100 : 0;
-
-  // Calcula custo do insumo especial
-  function calcularCustoEspecial(): number | null {
-    if (especial.tipo === "luz") {
-      const v1 = parseFloat(especial.contaLuz1?.replace(",", ".") || "0");
-      const v2 = parseFloat(especial.contaLuz2?.replace(",", ".") || "0");
-      const v3 = parseFloat(especial.contaLuz3?.replace(",", ".") || "0");
-      const count = [v1, v2, v3].filter((v) => v > 0).length;
-      if (count === 0) return null;
-      const media = (v1 + v2 + v3) / count;
-      const produtos = parseFloat(especial.produtosPorMes?.replace(",", ".") || "1") || 1;
-      return media / produtos;
-    }
-    if (especial.tipo === "gas") {
-      const valor = parseFloat(especial.valorGas?.replace(",", ".") || "0");
-      const dias = parseFloat(especial.duracaoGasDias?.replace(",", ".") || "30") || 30;
-      const produtos = parseFloat(especial.produtosPorMes?.replace(",", ".") || "1") || 1;
-      if (valor === 0) return null;
-      const custoDiario = valor / dias;
-      const custoMensal = custoDiario * 30;
-      return custoMensal / produtos;
-    }
-    return null;
-  }
-
-  function handleAddEspecial() {
-    const custo = calcularCustoEspecial();
-    if (!custo || custo <= 0) {
-      toast.error("Informe os valores para calcular o custo.");
-      return;
-    }
-    const nomeEspecial = especial.tipo === "luz" ? "Energia Elétrica (rateio)" : "Gás de Cozinha (rateio)";
-    const idEspecial = especial.tipo === "luz" ? "especial-luz" : "especial-gas";
-
-    if (ingredientes.some((i) => i.material_id === idEspecial)) {
-      // Atualiza se já existe
-      setIngredientes((prev) =>
-        prev.map((i) =>
-          i.material_id === idEspecial
-            ? { ...i, custo_unitario: custo, custo_subtotal: custo * i.quantidade }
-            : i
-        )
-      );
-      toast.success(`${nomeEspecial} atualizado: ${brl(custo)}/produto`);
-    } else {
-      setIngredientes((prev) => [
-        ...prev,
-        {
-          material_id: idEspecial,
-          material_nome: nomeEspecial,
-          quantidade: 1,
-          unidade_medida: "rateio",
-          custo_unitario: custo,
-          custo_subtotal: custo,
-        },
-      ]);
-      toast.success(`${nomeEspecial} adicionado: ${brl(custo)}/produto`);
-    }
-    setShowEspecial(false);
-    setEspecial({ tipo: null });
-  }
 
   function handleAddIngredient() {
     if (!selectedMatId) return;
@@ -199,7 +113,7 @@ export function ProductRecipeDrawer({
   function resetForm() {
     setNome(""); setPrecoVenda(""); setComissao("");
     setIngredientes([]); setSelectedMatId(""); setQtdAdd("1");
-    setConfirmDelete(false); setEspecial({ tipo: null }); setShowEspecial(false);
+setConfirmDelete(false);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -255,7 +169,7 @@ export function ProductRecipeDrawer({
   }
 
   const field = "h-12 w-full rounded-2xl border border-outline-variant/60 bg-surface px-4 text-sm text-foreground outline-none focus:border-2 focus:border-primary transition-all";
-  const fieldSm = "h-10 w-full rounded-xl border border-outline-variant/60 bg-surface px-3 text-xs text-foreground outline-none focus:border-primary";
+
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
@@ -322,89 +236,7 @@ export function ProductRecipeDrawer({
                 </button>
               </div>
 
-              {/* Insumos especiais */}
-              {!showEspecial ? (
-                <div className="flex gap-2">
-                  <button type="button" onClick={() => { setShowEspecial(true); setEspecial({ tipo: "luz" }); }}
-                    className="flex-1 h-9 rounded-xl border border-outline-variant/40 text-xs font-bold text-muted-foreground hover:bg-surface-container flex items-center justify-center gap-1.5">
-                    <Zap className="size-3.5 text-amber-500" /> + Luz (rateio)
-                  </button>
-                  <button type="button" onClick={() => { setShowEspecial(true); setEspecial({ tipo: "gas" }); }}
-                    className="flex-1 h-9 rounded-xl border border-outline-variant/40 text-xs font-bold text-muted-foreground hover:bg-surface-container flex items-center justify-center gap-1.5">
-                    <Flame className="size-3.5 text-orange-500" /> + Gás (rateio)
-                  </button>
-                </div>
-              ) : (
-                <div className="p-3 rounded-2xl bg-surface-container border border-outline-variant/30 space-y-2">
-                  <p className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                    {especial.tipo === "luz"
-                      ? <><Zap className="size-3.5 text-amber-500" /> Energia Elétrica — Últimas 3 contas</>
-                      : <><Flame className="size-3.5 text-orange-500" /> Gás de Cozinha</>}
-                  </p>
-
-                  {especial.tipo === "luz" && (
-                    <div className="grid grid-cols-3 gap-2">
-                      <div>
-                        <label className="text-[10px] text-muted-foreground block mb-0.5">Conta 1 (R$)</label>
-                        <input value={especial.contaLuz1 || ""} onChange={(e) => setEspecial((p) => ({ ...p, contaLuz1: e.target.value }))}
-                          inputMode="decimal" placeholder="0,00" className={fieldSm} />
-                      </div>
-                      <div>
-                        <label className="text-[10px] text-muted-foreground block mb-0.5">Conta 2 (R$)</label>
-                        <input value={especial.contaLuz2 || ""} onChange={(e) => setEspecial((p) => ({ ...p, contaLuz2: e.target.value }))}
-                          inputMode="decimal" placeholder="0,00" className={fieldSm} />
-                      </div>
-                      <div>
-                        <label className="text-[10px] text-muted-foreground block mb-0.5">Conta 3 (R$)</label>
-                        <input value={especial.contaLuz3 || ""} onChange={(e) => setEspecial((p) => ({ ...p, contaLuz3: e.target.value }))}
-                          inputMode="decimal" placeholder="0,00" className={fieldSm} />
-                      </div>
-                    </div>
-                  )}
-
-                  {especial.tipo === "gas" && (
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="text-[10px] text-muted-foreground block mb-0.5">Valor do botijão (R$)</label>
-                        <input value={especial.valorGas || ""} onChange={(e) => setEspecial((p) => ({ ...p, valorGas: e.target.value }))}
-                          inputMode="decimal" placeholder="Ex: 120,00" className={fieldSm} />
-                      </div>
-                      <div>
-                        <label className="text-[10px] text-muted-foreground block mb-0.5">Dura quantos dias?</label>
-                        <input value={especial.duracaoGasDias || ""} onChange={(e) => setEspecial((p) => ({ ...p, duracaoGasDias: e.target.value }))}
-                          inputMode="decimal" placeholder="Ex: 45" className={fieldSm} />
-                      </div>
-                    </div>
-                  )}
-
-                  <div>
-                    <label className="text-[10px] text-muted-foreground block mb-0.5">
-                      Quantos produtos por mês usam isso?
-                    </label>
-                    <input value={especial.produtosPorMes || ""} onChange={(e) => setEspecial((p) => ({ ...p, produtosPorMes: e.target.value }))}
-                      inputMode="decimal" placeholder="Ex: 100" className={fieldSm} />
-                  </div>
-
-                  {/* Preview do cálculo */}
-                  {(() => {
-                    const c = calcularCustoEspecial();
-                    return c !== null && c > 0 ? (
-                      <p className="text-xs text-primary font-bold">
-                        → Custo por produto: {brl(c)}
-                      </p>
-                    ) : null;
-                  })()}
-
-                  <div className="flex gap-2">
-                    <button type="button" onClick={() => { setShowEspecial(false); setEspecial({ tipo: null }); }}
-                      className="flex-1 h-8 rounded-xl border border-outline-variant text-xs text-muted-foreground">Cancelar</button>
-                    <button type="button" onClick={handleAddEspecial}
-                      className="flex-1 h-8 rounded-xl bg-primary text-primary-foreground text-xs font-bold">
-                      Adicionar ao Custo
-                    </button>
-                  </div>
-                </div>
-              )}
+              {/* Insumos especiais removidos daqui — cadastre Energia e Gás como insumos na aba Insumos */}
             </div>
 
             {/* Lista de ingredientes adicionados */}
