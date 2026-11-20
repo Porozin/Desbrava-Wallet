@@ -31,6 +31,10 @@ import {
   useTransactions,
   useDividas,
   addDivida,
+  registrarPagamentoParcial,
+  agendarExclusaoDivida,
+  deleteDivida,
+  type Divida,
   updateDividaStatus,
   useIsAdminOrDiretor,
   useIsAdmin,
@@ -70,6 +74,9 @@ function Mais() {
   const navigate = useNavigate();
 
   const [dividaDrawerOpen, setDividaDrawerOpen] = useState(false);
+  const [pagamentoDrawer, setPagamentoDrawer] = useState<Divida | null>(null);
+  const [pagamentoValor, setPagamentoValor] = useState("");
+  const [pagamentoOpcaoDrawer, setPagamentoOpcaoDrawer] = useState<Divida | null>(null);
   const [usersDrawerOpen, setUsersDrawerOpen] = useState(false);
   const [reportsDrawerOpen, setReportsDrawerOpen] = useState(false);
   const [wipeDrawerOpen, setWipeDrawerOpen] = useState(false);
@@ -387,30 +394,61 @@ function Mais() {
           <div className="divide-y divide-outline-variant/20 rounded-3xl bg-surface-container-low border border-outline-variant/20 overflow-hidden">
             {dividas.map((div) => {
               const isPaid = div.status === "pago";
+              const pago = div.valor_pago ?? 0;
+              const progresso = div.valor > 0 ? Math.min(100, (pago / div.valor) * 100) : 0;
               return (
-                <div key={div.id} className="p-4 flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className={`text-sm font-bold truncate ${isPaid ? "line-through opacity-60" : "text-foreground"}`}>
-                      {div.nome}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {div.data} {div.obs ? `• ${div.obs}` : ""}
-                    </p>
+                <div key={div.id} className="p-4 space-y-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className={`text-sm font-bold truncate ${isPaid ? "line-through opacity-60" : "text-foreground"}`}>
+                        {div.nome}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {div.data} {div.obs ? `• ${div.obs}` : ""}
+                        {div.delete_after && (
+                          <span className="ml-1 text-amber-600 dark:text-amber-400">
+                            • Será excluída em {new Date(div.delete_after).toLocaleDateString("pt-BR")}
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <div className="text-right">
+                        <span className={`text-sm font-bold block ${isPaid ? "text-muted-foreground" : "text-expense"}`}>
+                          {brl(div.valor)}
+                        </span>
+                        {pago > 0 && !isPaid && (
+                          <span className="text-[10px] text-income">pago {brl(pago)}</span>
+                        )}
+                      </div>
+                      {!isPaid && (
+                        <button
+                          onClick={() => { setPagamentoDrawer(div); setPagamentoValor(""); }}
+                          title="Registrar pagamento"
+                          className="p-2 rounded-full bg-income/10 text-income hover:bg-income/20 transition-colors"
+                        >
+                          <CheckCircle2 className="size-4" />
+                        </button>
+                      )}
+                      {isPaid && (
+                        <button
+                          onClick={() => setPagamentoOpcaoDrawer(div)}
+                          title="Opções de exclusão"
+                          className="p-2 rounded-full bg-primary-container text-on-primary-container"
+                        >
+                          <CheckCircle2 className="size-4" />
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3 shrink-0">
-                    <span className={`text-sm font-bold ${isPaid ? "text-muted-foreground" : "text-expense"}`}>
-                      {brl(div.valor)}
-                    </span>
-                    <button
-                      onClick={() => handleToggleDivida(div.id, div.status)}
-                      title={isPaid ? "Reabrir pendência" : "Marcar como pago"}
-                      className={`p-2 rounded-full transition-colors ${
-                        isPaid ? "bg-primary-container text-on-primary-container" : "bg-surface-variant text-muted-foreground"
-                      }`}
-                    >
-                      {isPaid ? <CheckCircle2 className="size-4" /> : <Clock className="size-4" />}
-                    </button>
-                  </div>
+                  {!isPaid && div.valor > 0 && (
+                    <div className="h-1.5 w-full rounded-full bg-surface-container-high overflow-hidden">
+                      <div
+                        className="h-full bg-income rounded-full transition-all"
+                        style={{ width: `${progresso}%` }}
+                      />
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -552,6 +590,95 @@ function Mais() {
         open={reportsDrawerOpen}
         onOpenChange={setReportsDrawerOpen}
       />
+
+      {/* Drawer: Registrar pagamento parcial */}
+      <Drawer open={!!pagamentoDrawer} onOpenChange={(v) => !v && setPagamentoDrawer(null)}>
+        <DrawerContent className="rounded-t-3xl bg-surface-container-low max-w-lg mx-auto p-4 pb-8 space-y-4">
+          <DrawerHeader>
+            <DrawerTitle className="text-lg font-black text-foreground">Registrar Pagamento</DrawerTitle>
+            {pagamentoDrawer && (
+              <p className="text-xs text-muted-foreground">
+                {pagamentoDrawer.nome} — Faltam {brl(pagamentoDrawer.valor - (pagamentoDrawer.valor_pago ?? 0))}
+              </p>
+            )}
+          </DrawerHeader>
+          <input
+            value={pagamentoValor}
+            onChange={(e) => setPagamentoValor(e.target.value)}
+            inputMode="decimal"
+            placeholder="Valor pago agora (R$)"
+            className="h-14 w-full rounded-2xl border border-outline-variant/60 bg-surface px-4 text-sm outline-none focus:border-primary"
+          />
+          <button
+            onClick={async () => {
+              if (!pagamentoDrawer) return;
+              const v = parseFloat(pagamentoValor.replace(",", "."));
+              if (!v || v <= 0) { toast.error("Informe um valor válido."); return; }
+              const novoTotal = (pagamentoDrawer.valor_pago ?? 0) + v;
+              try {
+                const { quitado } = await registrarPagamentoParcial(pagamentoDrawer.id, v, novoTotal, pagamentoDrawer.valor);
+                toast.success(quitado ? "Dívida quitada!" : `Pagamento de ${brl(v)} registrado!`);
+                qc.invalidateQueries({ queryKey: ["dividas"] });
+                if (quitado) {
+                  setPagamentoDrawer(null);
+                  setPagamentoOpcaoDrawer({ ...pagamentoDrawer, valor_pago: novoTotal, status: "pago" });
+                } else {
+                  setPagamentoDrawer(null);
+                }
+              } catch { toast.error("Erro ao registrar pagamento."); }
+            }}
+            className="h-12 w-full rounded-2xl bg-primary text-primary-foreground font-bold text-sm"
+          >
+            Confirmar Pagamento
+          </button>
+        </DrawerContent>
+      </Drawer>
+
+      {/* Drawer: Opções após quitação */}
+      <Drawer open={!!pagamentoOpcaoDrawer} onOpenChange={(v) => !v && setPagamentoOpcaoDrawer(null)}>
+        <DrawerContent className="rounded-t-3xl bg-surface-container-low max-w-lg mx-auto p-4 pb-8 space-y-4">
+          <DrawerHeader>
+            <DrawerTitle className="text-lg font-black text-foreground">🎉 Dívida Quitada!</DrawerTitle>
+            <p className="text-xs text-muted-foreground">
+              O que deseja fazer com este registro?
+            </p>
+          </DrawerHeader>
+          <button
+            onClick={async () => {
+              if (!pagamentoOpcaoDrawer) return;
+              try {
+                await agendarExclusaoDivida(pagamentoOpcaoDrawer.id, 7);
+                toast.success("Será excluída automaticamente em 7 dias.");
+                qc.invalidateQueries({ queryKey: ["dividas"] });
+                setPagamentoOpcaoDrawer(null);
+              } catch { toast.error("Erro."); }
+            }}
+            className="h-12 w-full rounded-2xl bg-surface-container-high border border-outline-variant/40 text-foreground font-bold text-sm"
+          >
+            Excluir em 7 dias
+          </button>
+          <button
+            onClick={() => setPagamentoOpcaoDrawer(null)}
+            className="h-12 w-full rounded-2xl bg-surface-container-high border border-outline-variant/40 text-foreground font-semibold text-sm"
+          >
+            Manter no histórico
+          </button>
+          <button
+            onClick={async () => {
+              if (!pagamentoOpcaoDrawer) return;
+              try {
+                await deleteDivida(pagamentoOpcaoDrawer.id);
+                toast.success("Dívida removida.");
+                qc.invalidateQueries({ queryKey: ["dividas"] });
+                setPagamentoOpcaoDrawer(null);
+              } catch { toast.error("Erro ao excluir."); }
+            }}
+            className="h-12 w-full rounded-2xl border border-destructive/40 text-destructive font-bold text-sm hover:bg-destructive/10"
+          >
+            Excluir imediatamente
+          </button>
+        </DrawerContent>
+      </Drawer>
 
       {/* Drawer: Limpeza Total — exclusivo para Admin */}
       {isAdmin && (

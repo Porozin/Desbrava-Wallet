@@ -607,9 +607,11 @@ export interface Divida {
   id: string;
   nome: string;
   valor: number;
+  valor_pago: number;
   data: string;
   status: "pendente" | "pago";
   obs?: string;
+  delete_after?: string | null;
 }
 
 export function useDividas() {
@@ -623,9 +625,11 @@ export function useDividas() {
         id: d.id,
         nome: d.nome,
         valor: Number(d.valor),
+        valor_pago: Number(d.valor_pago ?? 0),
         data: d.data,
         status: d.status,
         obs: d.obs ?? undefined,
+        delete_after: d.delete_after ?? null,
       })) as Divida[];
     },
   });
@@ -644,6 +648,26 @@ export async function addDivida(d: Omit<Divida, "id">) {
 
 export async function updateDividaStatus(id: string, status: "pendente" | "pago") {
   const { error } = await supabase.from("dividas").update({ status }).eq("id", id);
+  if (error) throw error;
+}
+
+export async function registrarPagamentoParcial(id: string, valorPagamento: number, novoValorPago: number, valorTotal: number) {
+  const quitado = novoValorPago >= valorTotal;
+  const updates: Record<string, unknown> = { valor_pago: novoValorPago };
+  if (quitado) updates.status = "pago";
+  const { error } = await supabase.from("dividas").update(updates).eq("id", id);
+  if (error) throw error;
+  return { quitado };
+}
+
+export async function agendarExclusaoDivida(id: string, dias: number | null) {
+  const delete_after = dias === null ? null : new Date(Date.now() + dias * 86400000).toISOString();
+  const { error } = await supabase.from("dividas").update({ delete_after }).eq("id", id);
+  if (error) throw error;
+}
+
+export async function deleteDivida(id: string) {
+  const { error } = await supabase.from("dividas").delete().eq("id", id);
   if (error) throw error;
 }
 
