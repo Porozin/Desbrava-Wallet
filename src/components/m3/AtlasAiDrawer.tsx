@@ -70,8 +70,7 @@ function OperationCard({
 
 // Converte markdown basico em JSX sem dependencias externas
 function renderText(text: string) {
-  return text.split('
-').map((line, i) => {
+  return text.split('\n').map((line, i) => {
     // Converte **negrito** em <strong>
     const parts = line.split(/(\*\*[^*]+\*\*)/g).map((part, j) => {
       if (part.startsWith('**') && part.endsWith('**')) {
