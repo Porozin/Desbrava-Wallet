@@ -6,7 +6,7 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
 const NVIDIA_URL = "https://integrate.api.nvidia.com/v1/chat/completions";
-const NVIDIA_MODEL = "nvidia/nemotron-3.5-bolt-e4b";
+const NVIDIA_MODEL = "nvidia/nemotron-3.5-lightning-30b-a3b";
 
 // ========== CORS ==========
 const CORS = {
@@ -534,7 +534,7 @@ Deno.serve(async (req: Request) => {
     const nvidiaRes = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": "Bearer " + NVIDIA_API_KEY },
-      body: JSON.stringify({ model: "nvidia/nemotron-3.5-bolt-e4b", messages, tools: openaiTools, tool_choice: "auto", temperature: 0.3, max_tokens: 1024 }),
+      body: JSON.stringify({ model: "nvidia/nemotron-3.5-lightning-30b-a3b", messages, tools: openaiTools, tool_choice: "auto", temperature: 0.3, max_tokens: 2048 }),
     });
     if (!nvidiaRes.ok) {
       const errText = await nvidiaRes.text();
@@ -556,7 +556,7 @@ Deno.serve(async (req: Request) => {
       const r2 = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": "Bearer " + NVIDIA_API_KEY },
-        body: JSON.stringify({ model: "nvidia/nemotron-3.5-bolt-e4b", messages: msgs2, temperature: 0.3, max_tokens: 1024 }),
+        body: JSON.stringify({ model: "nvidia/nemotron-3.5-lightning-30b-a3b", messages: msgs2, temperature: 0.3, max_tokens: 2048 }),
       });
       if (r2.ok) { const d2 = await r2.json(); assistantText = d2?.choices?.[0]?.message?.content ?? ""; }
     } else {
