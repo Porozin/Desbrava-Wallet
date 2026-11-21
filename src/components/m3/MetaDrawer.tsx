@@ -19,6 +19,7 @@ export function MetaDrawer({ open, onOpenChange, meta }: MetaDrawerProps) {
   const [descricao, setDescricao] = useState("");
   const [valorAlvo, setValorAlvo] = useState("");
   const [status, setStatus] = useState<Meta["status"]>("aprovada");
+  const [tipo, setTipo] = useState<Meta["tipo"]>("destinacao_manual");
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -30,11 +31,13 @@ export function MetaDrawer({ open, onOpenChange, meta }: MetaDrawerProps) {
         setDescricao(meta.descricao);
         setValorAlvo(String(meta.valor_alvo));
         setStatus(meta.status);
+        setTipo(meta.tipo ?? "destinacao_manual");
       } else {
         setModulo("clube");
         setDescricao("");
         setValorAlvo("");
         setStatus("aprovada");
+        setTipo("destinacao_manual");
       }
       setConfirmDelete(false);
     }
@@ -53,10 +56,10 @@ export function MetaDrawer({ open, onOpenChange, meta }: MetaDrawerProps) {
     setSaving(true);
     try {
       if (isEdit && meta) {
-        await updateMeta(meta.id, { descricao: descricao.trim(), valor_alvo: valor, status });
+        await updateMeta(meta.id, { descricao: descricao.trim(), valor_alvo: valor, status, tipo });
         toast.success("Meta atualizada com sucesso!");
       } else {
-        await addMeta({ modulo, descricao: descricao.trim(), valor_alvo: valor, status });
+        await addMeta({ modulo, descricao: descricao.trim(), valor_alvo: valor, status, tipo, valor_atual: 0 });
         toast.success("Meta criada com sucesso!");
       }
       qc.invalidateQueries({ queryKey: ["metas"] });
@@ -150,6 +153,26 @@ export function MetaDrawer({ open, onOpenChange, meta }: MetaDrawerProps) {
               </select>
             </div>
           )}
+
+          <div>
+            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide block mb-1">Como a meta é preenchida?</label>
+            <div className="grid grid-cols-2 gap-2">
+              <button type="button" onClick={() => setTipo("lucro_automatico")}
+                className={`h-12 rounded-2xl border-2 text-xs font-bold flex flex-col items-center justify-center gap-0.5 transition-all px-2 ${
+                  tipo === "lucro_automatico" ? "border-primary bg-primary-container/30 text-primary" : "border-outline-variant/40 text-muted-foreground"
+                }`}>
+                <span>⚡ Lucro automático</span>
+                <span className="font-normal text-[10px]">Vendas + Doceria</span>
+              </button>
+              <button type="button" onClick={() => setTipo("destinacao_manual")}
+                className={`h-12 rounded-2xl border-2 text-xs font-bold flex flex-col items-center justify-center gap-0.5 transition-all px-2 ${
+                  tipo === "destinacao_manual" ? "border-primary bg-primary-container/30 text-primary" : "border-outline-variant/40 text-muted-foreground"
+                }`}>
+                <span>🎯 Destinação manual</span>
+                <span className="font-normal text-[10px]">Você decide o valor</span>
+              </button>
+            </div>
+          </div>
 
           <button
             onClick={handleSave}

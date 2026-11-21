@@ -20,14 +20,16 @@ import {
 } from "@/components/m3/parts";
 import { MonthlyChart } from "@/components/m3/MonthlyChart";
 import { PwaInstallBanner } from "@/components/m3/PwaInstallBanner";
+import { MetaProgressBar } from "@/components/m3/MetaProgressBar";
 import {
   brl,
   summarize,
   consolidateAllBoxes,
   summarizeBox,
+  profitMargin,
   CASH_BOX_LABEL,
 } from "@/lib/finance";
-import { useCanRecord, useReservations, useTransactions, useMetas } from "@/lib/data";
+import { useCanRecord, useReservations, useTransactions, useMetas, useBoxTransactions } from "@/lib/data";
 
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
@@ -56,6 +58,20 @@ function Home() {
   const canRecord = useCanRecord();
   const todasMetas = useMetas();
   const metasConcluidas = todasMetas.filter((m) => m.status === "concluida");
+  const doceriaTx = useBoxTransactions("doceria");
+  const vendasTx = useBoxTransactions("vendas");
+
+  // Lucro Doceria = receita - despesa (excluindo transferências)
+  const lucroDoceria = (() => {
+    const r = doceriaTx.filter((t) => t.kind === "receita" && t.status === "confirmado").reduce((a, t) => a + t.amount, 0);
+    const d = doceriaTx.filter((t) => t.kind === "despesa" && t.status === "confirmado").reduce((a, t) => a + t.amount, 0);
+    return Math.max(0, r - d);
+  })();
+  const lucroVendas = (() => {
+    const r = vendasTx.filter((t) => t.kind === "receita" && t.status === "confirmado").reduce((a, t) => a + t.amount, 0);
+    const d = vendasTx.filter((t) => t.kind === "despesa" && t.status === "confirmado").reduce((a, t) => a + t.amount, 0);
+    return Math.max(0, r - d);
+  })();
 
   const [period, setPeriod] = useState<Period>("all");
   const [transferOpen, setTransferOpen] = useState(false);
@@ -80,6 +96,9 @@ function Home() {
   return (
     <AppShell title="Dashboard Financeiro">
       <PwaInstallBanner />
+
+      {/* Metas com progresso */}
+      <MetaProgressBar lucroDoceria={lucroDoceria} lucroVendas={lucroVendas} />
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <ChipGroup
           value={period}

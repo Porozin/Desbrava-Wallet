@@ -143,36 +143,27 @@ function Mais() {
     toast.success("Backup JSON exportado com sucesso!");
   }
 
-  // 3. Sincronização / Backup para Google Apps Script
+  const BACKUP_WEBHOOK = "https://script.google.com/macros/s/AKfycbwPNaGTuEDuvRfcfGUutYnJqFFiXE9ZVilVK30vSYC0kNtVDzbsxkYq85oPMhvEOO__/exec";
+
+  // 3. Backup automático para Google Drive (URL hardcoded)
   async function triggerGoogleDriveBackup() {
-    if (!backupWebhook) {
-      const url = prompt(
-        "Insira a URL do seu Web App do Google Apps Script (ex: https://script.google.com/macros/s/.../exec):",
-        backupWebhook
-      );
-      if (!url) return;
-      localStorage.setItem("gda_backup_webhook", url);
-      setBackupWebhook(url);
-    }
-
-    const currentUrl = backupWebhook || localStorage.getItem("gda_backup_webhook");
-    if (!currentUrl) return;
-
-    toast.info("Enviando backup para o seu Google Drive…");
+    toast.info("Enviando backup para o Google Drive…");
     try {
-      await fetch(currentUrl, {
+      await fetch(BACKUP_WEBHOOK, {
         method: "POST",
         mode: "no-cors",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           timestamp: new Date().toISOString(),
-          autor: me?.name || "Tesouraria",
+          autor: me?.name || "Tesouraria GDA",
           dados: all,
+          dividas,
         }),
       });
-      toast.success("Backup transmitido com sucesso ao Google Drive!");
+      localStorage.setItem("gda_last_backup", new Date().toISOString());
+      toast.success("Backup enviado ao Google Drive!");
     } catch {
-      toast.error("Falha ao comunicar com o script do Google Drive.");
+      toast.error("Falha ao comunicar com o Google Drive.");
     }
   }
 

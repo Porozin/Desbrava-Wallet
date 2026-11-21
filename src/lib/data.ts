@@ -330,6 +330,9 @@ export interface Meta {
   unidade_nome?: string;
   descricao: string;
   valor_alvo: number;
+  valor_atual: number;
+  tipo: "lucro_automatico" | "destinacao_manual";
+  caixa_origem?: string | null;
   status: "pendente" | "aprovada" | "concluida";
   sugerido_por?: string;
 }
@@ -347,6 +350,9 @@ export function useMetas(modulo?: Meta["modulo"]) {
         unidade_nome: m.unidade_nome ?? undefined,
         descricao: m.descricao,
         valor_alvo: Number(m.valor_alvo),
+        valor_atual: Number(m.valor_atual ?? 0),
+        tipo: (m.tipo ?? "destinacao_manual") as Meta["tipo"],
+        caixa_origem: m.caixa_origem ?? null,
         status: m.status,
         sugerido_por: m.sugerido_por ?? undefined,
       })) as Meta[];
@@ -383,9 +389,42 @@ export async function deleteMeta(id: string) {
   if (error) throw error;
 }
 
-export async function updateMeta(id: string, changes: Partial<Pick<Meta, "descricao" | "valor_alvo" | "status">>) {
+export async function updateMeta(id: string, changes: Partial<Pick<Meta, "descricao" | "valor_alvo" | "status" | "tipo" | "caixa_origem">>) {
   const { error } = await supabase.from("metas").update(changes).eq("id", id);
   if (error) throw error;
+}
+
+export async function aportarMeta(params: {
+  metaId: string;
+  metaDescricao: string;
+  cashBoxId: string;
+  amountCents: number;
+  valorAtualCents: number;
+  valorAlvoCents: number;
+}) {
+  const mutationId = crypto.randomUUID();
+  // Registra a saída do caixa como despesa destinada à meta
+  const { error: txError } = await supabase.rpc("sp_registrar_transacao_oficial", {
+    p_client_mutation_id: mutationId,
+    p_cash_box_id: params.cashBoxId,
+    p_kind: "despesa",
+    p_amount_cents: params.amountCents,
+    p_category: "Meta",
+    p_description: `Aporte para meta: ${params.metaDescricao}`,
+    p_payment_method: "dinheiro",
+    p_date: new Date().toISOString().slice(0, 10),
+    p_seller: null,
+  });
+  if (txError) throw txError;
+
+  // Atualiza valor_atual da meta
+  const novoValor = (params.valorAtualCents + params.amountCents) / 100;
+  const novoStatus = novoValor * 100 >= params.valorAlvoCents ? "concluida" : "aprovada";
+  const { error: metaError } = await supabase
+    .from("metas")
+    .update({ valor_atual: novoValor, status: novoStatus, caixa_origem: params.cashBoxId })
+    .eq("id", params.metaId);
+  if (metaError) throw metaError;
 }
 
 export async function updateMetaStatus(id: string, status: Meta["status"]) {
