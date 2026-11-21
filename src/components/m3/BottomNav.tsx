@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "@tanstack/react-router";
 import { Landmark, Cake, Zap, UserCircle2, Home } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface NavItem {
   to: "/" | "/clube" | "/doceria" | "/vendas" | "/mais";
@@ -16,45 +17,35 @@ const navItems: NavItem[] = [
   { to: "/mais", label: "Perfil", icon: UserCircle2 },
 ];
 
-// Componente separado que só roda no client
 function PendingBadge() {
   const [count, setCount] = useState(0);
 
   useEffect(() => {
-    // Importa dinamicamente para evitar SSR
-    let unsub = false;
-    import("@/lib/data").then(({ supabase }) => {
-      if (unsub) return;
-      // Conta pendentes via query direta
-      supabase
-        .from("transactions")
-        .select("id", { count: "exact", head: true })
-        .eq("status", "pendente")
-        .then(({ count: c }) => {
-          if (!unsub) setCount(c ?? 0);
-        });
+    let active = true;
 
-      // Realtime
-      const channel = supabase
-        .channel("pending-badge")
-        .on("postgres_changes", { event: "*", schema: "public", table: "transactions" }, () => {
-          supabase
-            .from("transactions")
-            .select("id", { count: "exact", head: true })
-            .eq("status", "pendente")
-            .then(({ count: c }) => {
-              if (!unsub) setCount(c ?? 0);
-            });
-        })
-        .subscribe();
+    const fetchCount = async () => {
+      try {
+        const { count: c } = await supabase
+          .from("transactions")
+          .select("id", { count: "exact", head: true })
+          .eq("status", "pendente");
+        if (active) setCount(c ?? 0);
+      } catch {
+        // silencioso
+      }
+    };
 
-      return () => {
-        unsub = true;
-        supabase.removeChannel(channel);
-      };
-    });
+    fetchCount();
 
-    return () => { unsub = true; };
+    const channel = supabase
+      .channel("pending-badge-nav")
+      .on("postgres_changes", { event: "*", schema: "public", table: "transactions" }, fetchCount)
+      .subscribe();
+
+    return () => {
+      active = false;
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   if (count === 0) return null;
