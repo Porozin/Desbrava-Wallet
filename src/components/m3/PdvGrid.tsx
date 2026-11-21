@@ -39,6 +39,9 @@ export function PdvGrid({ produtos, module, boxId, defaultIcon = "cake" }: PdvGr
   const [confirmed, setConfirmed] = useState(false);
 
   const total = cart.reduce((acc, i) => acc + i.produto.preco_venda * i.qty, 0);
+  const totalCusto = cart.reduce((acc, i) => acc + (i.produto.custo + i.produto.comissao) * i.qty, 0);
+  const lucroTotal = total - totalCusto;
+  const margemTotal = total > 0 ? (lucroTotal / total) * 100 : 0;
   const totalCents = toCents(total);
 
   function setQty(produto: Produto, delta: number) {
@@ -158,6 +161,9 @@ export function PdvGrid({ produtos, module, boxId, defaultIcon = "cake" }: PdvGr
                   {p.nome}
                 </p>
                 <p className="text-sm font-black text-primary">{brl(p.preco_venda)}</p>
+                {p.custo > 0 && (
+                  <p className="text-[10px] text-income">Lucro: {brl(p.preco_venda - p.custo - p.comissao)}</p>
+                )}
               </button>
 
               {/* Controles de quantidade */}
@@ -219,6 +225,14 @@ export function PdvGrid({ produtos, module, boxId, defaultIcon = "cake" }: PdvGr
             <span className="text-xs font-bold text-muted-foreground uppercase">Total</span>
             <span className="text-xl font-black text-primary">{brl(total)}</span>
           </div>
+          {totalCusto > 0 && (
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">Lucro estimado</span>
+              <span className={lucroTotal >= 0 ? "font-bold text-income" : "font-bold text-expense"}>
+                {brl(lucroTotal)} ({margemTotal.toFixed(0)}%)
+              </span>
+            </div>
+          )}
 
           {/* Vendedor */}
           <input

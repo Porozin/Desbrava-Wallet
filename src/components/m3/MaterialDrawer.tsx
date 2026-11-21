@@ -31,6 +31,7 @@ export function MaterialDrawer({ open, onOpenChange, modulo, material }: Materia
 
   // Campos modo luz
   const [conta1, setConta1] = useState("");
+  const [docesLuz, setDocesLuz] = useState("");
   const [conta2, setConta2] = useState("");
   const [conta3, setConta3] = useState("");
 
@@ -55,7 +56,7 @@ export function MaterialDrawer({ open, onOpenChange, modulo, material }: Materia
     }
     if (!open) {
       setNome(""); setQuantidade(""); setCusto(""); setUnidade("un");
-      setConta1(""); setConta2(""); setConta3("");
+      setConta1(""); setConta2(""); setConta3(""); setDocesLuz("");
       setValorGas(""); setDuracaoGas(""); setDiasProducao(""); setDocesPerDia(""); setPercGasProducao("100");
       setModo("normal"); setConfirmDelete(false);
     }
@@ -68,7 +69,10 @@ export function MaterialDrawer({ open, onOpenChange, modulo, material }: Materia
         .map((v) => parseFloat(v.replace(",", ".")) || 0)
         .filter((v) => v > 0);
       if (v.length === 0) return null;
-      return v.reduce((a, b) => a + b, 0) / v.length;
+      const media = v.reduce((a, b) => a + b, 0) / v.length;
+      const doces = parseFloat(docesLuz.replace(",", ".")) || 0;
+      if (doces <= 0) return media; // sem rateio ainda
+      return media / doces; // custo por doce
     }
     if (modo === "gas") {
       const val = parseFloat(valorGas.replace(",", ".")) || 0;
@@ -95,10 +99,10 @@ export function MaterialDrawer({ open, onOpenChange, modulo, material }: Materia
     if (modo === "luz") {
       if (!custoCalculado) { toast.error("Informe ao menos uma conta de luz."); return; }
       nomeFinal = nomeFinal || "Energia Elétrica";
-      // 1 mês = média das contas; ao vincular ao produto define o rateio por unidade
+      // Salva como: 1 doce = custo calculado (media / doces_por_mes)
       qtdFinal = 1;
       custoFinal = custoCalculado;
-      unidadeFinal = "mês";
+      unidadeFinal = parseFloat((docesLuz||"0").replace(",",".")) > 0 ? "doce" : "mês";
     } else if (modo === "gas") {
       if (!custoCalculado) { toast.error("Preencha todos os campos para calcular o custo."); return; }
       nomeFinal = nomeFinal || "Gás de Cozinha";
@@ -232,14 +236,24 @@ export function MaterialDrawer({ open, onOpenChange, modulo, material }: Materia
                   </div>
                 ))}
               </div>
+              <div>
+                <label className="text-[11px] font-bold text-muted-foreground block mb-1">Doces produzidos por mês</label>
+                <input value={docesLuz} onChange={(e) => setDocesLuz(e.target.value)}
+                  inputMode="decimal" placeholder="Ex: 200"
+                  className="h-12 w-full rounded-2xl border border-outline-variant/60 bg-surface px-4 text-sm outline-none focus:border-primary" />
+                <p className="text-[10px] text-muted-foreground mt-1 px-1">Quantos doces você produz por mês usando energia elétrica?</p>
+              </div>
               {custoCalculado !== null && (
-                <div className="p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200/40">
-                  <p className="text-xs font-bold text-amber-800 dark:text-amber-300">
-                    Média mensal: {brl(custoCalculado)}
-                  </p>
-                  <p className="text-[11px] text-amber-700 dark:text-amber-400 mt-0.5">
-                    Ao vincular ao produto, você define quanto desse valor rateiar por unidade produzida.
-                  </p>
+                <div className="p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200/40 space-y-0.5">
+                  {parseFloat((docesLuz||"").replace(",",".")) > 0 ? (
+                    <p className="text-xs font-bold text-amber-800 dark:text-amber-300">
+                      Custo de energia por doce: {brl(custoCalculado)}
+                    </p>
+                  ) : (
+                    <p className="text-xs font-bold text-amber-800 dark:text-amber-300">
+                      Média mensal: {brl(custoCalculado)} — informe os doces/mês para calcular por unidade
+                    </p>
+                  )}
                 </div>
               )}
             </>
