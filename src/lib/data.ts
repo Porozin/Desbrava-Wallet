@@ -238,10 +238,63 @@ export async function rejectExpenseRequest(transactionId: string, reason: string
 }
 
 export async function deleteTransaction(transactionId: string) {
+  // Busca a transação antes de deletar para verificar impacto em metas
+  const { data: tx } = await supabase
+    .from("transactions")
+    .select("id, description, category, kind, amount_cents, amount, original_transaction_id")
+    .eq("id", transactionId)
+    .single();
+
   const { error } = await supabase.rpc("sp_deletar_transacao_admin", {
     p_transaction_id: transactionId,
   });
   if (error) throw new Error(error.message);
+
+  if (!tx) return;
+
+  // Caso 1: deletando um aporte direto (category="Meta", kind="despesa")
+  // → decrementar valor_atual da meta referenciada
+  if (tx.category === "Meta" && tx.kind === "despesa" && tx.description) {
+    const match = tx.description.match(/\[meta:([a-f0-9-]{36})\]/);
+    if (match) {
+      await _ajustarMeta(match[1], -(tx.amount_cents ? tx.amount_cents / 100 : tx.amount));
+    }
+  }
+
+  // Caso 2: deletando a compensação de estorno de um aporte (category="Estorno", kind="receita")
+  // → o original foi um aporte de meta; deletar a receita do estorno significa que o dinheiro
+  //   "voltou" mas sem a compensação → temos que decrementar de volta o valor_atual
+  if (tx.category === "Estorno" && tx.kind === "receita" && tx.original_transaction_id) {
+    const { data: orig } = await supabase
+      .from("transactions")
+      .select("description, category, amount_cents, amount")
+      .eq("id", tx.original_transaction_id)
+      .single();
+    if (orig && orig.category === "Meta" && orig.description) {
+      const match = orig.description.match(/\[meta:([a-f0-9-]{36})\]/);
+      if (match) {
+        // O estorno já tinha decrementado; deletar a receita compensatória não muda a meta
+        // (a receita só afetou o caixa, não a meta). Não fazer nada aqui.
+        // A meta já foi decrementada pelo reverseTransaction quando o estorno foi criado.
+      }
+    }
+  }
+}
+
+/** Ajusta valor_atual de uma meta pelo delta (positivo = incrementa, negativo = decrementa) */
+async function _ajustarMeta(metaId: string, delta: number) {
+  const { data: meta } = await supabase
+    .from("metas")
+    .select("valor_atual, valor_alvo")
+    .eq("id", metaId)
+    .single();
+  if (!meta) return;
+  const novoValor = Math.max(0, Number(meta.valor_atual) + delta);
+  const novoStatus = novoValor >= Number(meta.valor_alvo) ? "concluida" : "aprovada";
+  await supabase
+    .from("metas")
+    .update({ valor_atual: novoValor, status: novoStatus })
+    .eq("id", metaId);
 }
 
 export async function reverseTransaction(transactionId: string, reason: string) {
@@ -297,23 +350,10 @@ export async function reverseTransaction(transactionId: string, reason: string) 
   if (original && original.category === "Meta" && original.description) {
     const match = original.description.match(/\[meta:([a-f0-9-]{36})\]/);
     if (match) {
-      const metaId = match[1];
-      const { data: meta } = await supabase
-        .from("metas")
-        .select("valor_atual, valor_alvo")
-        .eq("id", metaId)
-        .single();
-      if (meta) {
-        const amountReturned = original.amount_cents
-          ? original.amount_cents / 100
-          : original.amount;
-        const novoValor = Math.max(0, Number(meta.valor_atual) - amountReturned);
-        const novoStatus = novoValor * 100 >= Number(meta.valor_alvo) * 100 ? "concluida" : "aprovada";
-        await supabase
-          .from("metas")
-          .update({ valor_atual: novoValor, status: novoStatus })
-          .eq("id", metaId);
-      }
+      const amountReturned = original.amount_cents
+        ? original.amount_cents / 100
+        : original.amount;
+      await _ajustarMeta(match[1], -amountReturned);
     }
   }
 
