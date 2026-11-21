@@ -36,6 +36,8 @@ export function ProductRecipeDrawer({
   const [precoVenda, setPrecoVenda] = useState("");
   const [comissao, setComissao] = useState("");
   const [ingredientes, setIngredientes] = useState<IngredienteInsumo[]>([]);
+  const [icon, setIcon] = useState("");
+  const [color, setColor] = useState("#22c55e");
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -48,10 +50,13 @@ export function ProductRecipeDrawer({
       setPrecoVenda(String(produto.preco_venda));
       setComissao(String(produto.comissao));
       setIngredientes(produto.ingredientes ?? []);
+      setIcon(produto.icon ?? "");
+      setColor(produto.color ?? "#22c55e");
     }
     if (!open) {
       setNome(""); setPrecoVenda(""); setComissao("");
       setIngredientes([]); setSelectedMatId(""); setQtdAdd("1");
+      setIcon(""); setColor("#22c55e");
       setConfirmDelete(false);
     }
   }, [open, produto]);
@@ -132,6 +137,8 @@ setConfirmDelete(false);
         comissao: comissaoNum,
         modulo,
         ingredientes,
+        icon: icon.trim() || null,
+        color: color || null,
       };
 
       if (isEdit && produto) {
@@ -187,6 +194,38 @@ setConfirmDelete(false);
           {/* Nome */}
           <input value={nome} onChange={(e) => setNome(e.target.value)}
             placeholder="Nome do produto (ex: Trufa de Maracujá)" className={field} required />
+
+          {/* Ícone e Cor do PDV */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-[11px] font-bold text-muted-foreground uppercase mb-1 block">Emoji / Ícone PDV</label>
+              <div className="flex items-center gap-2">
+                <div
+                  className="flex size-12 shrink-0 items-center justify-center rounded-2xl text-2xl"
+                  style={{ backgroundColor: color + "33" }}
+                >
+                  {icon || "🛍️"}
+                </div>
+                <input value={icon} onChange={(e) => setIcon(e.target.value)}
+                  placeholder="Ex: 🍰 🍫 💧"
+                  className="h-12 flex-1 rounded-2xl border border-outline-variant/60 bg-surface px-4 text-lg outline-none focus:border-primary" />
+              </div>
+            </div>
+            <div>
+              <label className="text-[11px] font-bold text-muted-foreground uppercase mb-1 block">Cor do Card</label>
+              <div className="flex items-center gap-2 h-12">
+                <input type="color" value={color} onChange={(e) => setColor(e.target.value)}
+                  className="size-12 rounded-2xl border border-outline-variant/60 bg-surface cursor-pointer p-1" />
+                <div className="flex-1 grid grid-cols-4 gap-1">
+                  {["#22c55e","#3b82f6","#f59e0b","#ef4444","#8b5cf6","#ec4899","#14b8a6","#f97316"].map((c) => (
+                    <button key={c} type="button" onClick={() => setColor(c)}
+                      className={`size-7 rounded-lg transition-all ${color === c ? "ring-2 ring-offset-1 ring-foreground" : ""}`}
+                      style={{ backgroundColor: c }} />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
 
           {/* Preço e Comissão */}
           <div className="grid grid-cols-2 gap-3">

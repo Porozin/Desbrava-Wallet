@@ -466,6 +466,8 @@ export interface Produto {
   comissao: number;
   modulo?: "doceria" | "vendas" | "clube";
   ingredientes?: IngredienteInsumo[];
+  icon?: string | null;
+  color?: string | null;
 }
 
 export function useProdutos(modulo?: "doceria" | "vendas" | "clube") {
@@ -499,6 +501,8 @@ export function useProdutos(modulo?: "doceria" | "vendas" | "clube") {
           comissao: Number(p.comissao),
           modulo: itemModulo,
           ingredientes,
+          icon: p.icon ?? null,
+          color: p.color ?? null,
         } as Produto;
       });
     },
@@ -558,6 +562,8 @@ export async function updateProduto(id: string, p: Partial<Omit<Produto, "id">>)
   if (p.comissao !== undefined) payload.comissao = p.comissao;
   if (p.modulo !== undefined) payload.modulo = p.modulo;
   if (p.ingredientes !== undefined) payload.ingredientes = p.ingredientes;
+  if (p.icon !== undefined) payload.icon = p.icon;
+  if (p.color !== undefined) payload.color = p.color;
 
   const { error } = await supabase.from("produtos").update(payload).eq("id", id);
   if (error) throw error;

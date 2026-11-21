@@ -141,10 +141,9 @@ export function PdvGrid({ produtos, module, boxId, defaultIcon = "cake" }: PdvGr
             <div
               key={p.id}
               className={`relative rounded-3xl border-2 transition-all overflow-hidden flex flex-col ${
-                inCart
-                  ? "border-primary bg-primary-container/30"
-                  : "border-outline-variant/30 bg-surface-container-low"
+                inCart ? "border-primary bg-primary-container/30" : "border-outline-variant/30 bg-surface-container-low"
               }`}
+              style={p.color && inCart ? { borderColor: p.color, backgroundColor: p.color + "18" } : undefined}
             >
               {/* Área do produto — toque adiciona */}
               <button
@@ -152,15 +151,20 @@ export function PdvGrid({ produtos, module, boxId, defaultIcon = "cake" }: PdvGr
                 onClick={() => setQty(p, 1)}
                 className="flex flex-col items-center justify-center gap-2 p-4 pt-5 flex-1 w-full"
               >
-                <span className={`flex size-14 items-center justify-center rounded-2xl text-2xl ${
-                  inCart ? "bg-primary text-primary-foreground" : "bg-surface-container-high text-muted-foreground"
-                }`}>
-                  <DefaultIcon className="size-7" />
+                <span
+                  className="flex size-14 items-center justify-center rounded-2xl text-2xl"
+                  style={p.color ? { backgroundColor: p.color + "33" } : undefined}
+                >
+                  {p.icon ? (
+                    <span className="text-2xl">{p.icon}</span>
+                  ) : (
+                    <DefaultIcon className="size-7" style={p.color ? { color: p.color } : undefined} />
+                  )}
                 </span>
                 <p className="text-xs font-bold text-foreground text-center leading-tight line-clamp-2">
                   {p.nome}
                 </p>
-                <p className="text-sm font-black text-primary">{brl(p.preco_venda)}</p>
+                <p className="text-sm font-black" style={p.color ? { color: p.color } : undefined}>{brl(p.preco_venda)}</p>
                 {p.custo > 0 && (
                   <p className="text-[10px] text-income">Lucro: {brl(p.preco_venda - p.custo - p.comissao)}</p>
                 )}
