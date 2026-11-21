@@ -1,11 +1,12 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { Home, Landmark, Cake, Zap, UserCircle2, type LucideIcon, Wifi, WifiOff, Sparkles } from "lucide-react";
+import { Home, Landmark, Cake, Zap, UserCircle2, type LucideIcon, Wifi, WifiOff, Sparkles, Moon, Sun } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { motion, AnimatePresence, MotionConfig } from "motion/react";
 import { cn } from "@/lib/utils";
 import { BottomNav } from "./BottomNav";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import { useTheme } from "@/hooks/useTheme";
 import { AtlasAiDrawer } from "./AtlasAiDrawer";
 
 const NAV: { to: "/" | "/clube" | "/doceria" | "/vendas" | "/mais"; label: string; icon: LucideIcon }[] = [
@@ -19,6 +20,7 @@ const NAV: { to: "/" | "/clube" | "/doceria" | "/vendas" | "/mais"; label: strin
 export function AppShell({ title, children, fab }: { title: string; children: ReactNode; fab?: ReactNode }) {
   const { pathname } = useLocation();
   const online = useOnlineStatus();
+  const { isDark, toggle } = useTheme();
   const [atlasOpen, setAtlasOpen] = useState(false);
   return (
     <MotionConfig reducedMotion="user">
@@ -61,6 +63,37 @@ export function AppShell({ title, children, fab }: { title: string; children: Re
         <div className="flex items-center justify-between">
           <p className="label-medium text-muted-foreground">Guerreiros do Alto</p>
           <div className="flex items-center gap-2">
+            {/* Toggle Dark/Light */}
+            <motion.button
+              onClick={toggle}
+              whileTap={{ scale: 0.9 }}
+              transition={{ type: "spring", stiffness: 400, damping: 28 }}
+              aria-label={isDark ? "Mudar para modo claro" : "Mudar para modo escuro"}
+              className="flex size-8 items-center justify-center rounded-full bg-surface-container-high text-muted-foreground hover:bg-surface-variant/50 transition-colors"
+            >
+              <AnimatePresence mode="wait" initial={false}>
+                {isDark ? (
+                  <motion.span key="sun"
+                    initial={{ rotate: -60, opacity: 0, scale: 0.7 }}
+                    animate={{ rotate: 0, opacity: 1, scale: 1 }}
+                    exit={{ rotate: 60, opacity: 0, scale: 0.7 }}
+                    transition={{ duration: 0.18 }}
+                  >
+                    <Sun className="size-4" />
+                  </motion.span>
+                ) : (
+                  <motion.span key="moon"
+                    initial={{ rotate: 60, opacity: 0, scale: 0.7 }}
+                    animate={{ rotate: 0, opacity: 1, scale: 1 }}
+                    exit={{ rotate: -60, opacity: 0, scale: 0.7 }}
+                    transition={{ duration: 0.18 }}
+                  >
+                    <Moon className="size-4" />
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </motion.button>
+
             {/* Botão Atlas AI */}
             <motion.button
               onClick={() => setAtlasOpen(true)}

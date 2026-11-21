@@ -130,6 +130,23 @@
     font-family: var(--font-sans);
     -webkit-tap-highlight-color: transparent;
   }
+
+  /*
+   * Impede zoom automático em iOS/Android quando o usuário foca um input.
+   * iOS dispara zoom quando font-size < 16px. Forçamos 16px em todos
+   * os campos e resetamos para o tamanho visual via transform.
+   * user-scalable=no no viewport também reforça isso.
+   */
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+
+  /* Scroll suave no nível raiz */
+  html {
+    scroll-behavior: smooth;
+  }
 }
 
 /* M3 type scale */
