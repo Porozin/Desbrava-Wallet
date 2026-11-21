@@ -349,7 +349,8 @@ async function executeConfirmedOperation(
         result = { transaction_id: data };
         break;
       }
-      case "registrar_transferencia": {
+      case "registrar_transferencia":
+      case "transferencia": {
         const { data, error } = await supabaseAsUser.rpc("sp_registrar_transferencia", {
           p_client_mutation_id: mutationId,
           p_source_box: params.source_box,

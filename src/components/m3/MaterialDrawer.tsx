@@ -34,6 +34,7 @@ export function MaterialDrawer({ open, onOpenChange, modulo, material }: Materia
   const [docesLuz, setDocesLuz] = useState("");
   const [conta2, setConta2] = useState("");
   const [conta3, setConta3] = useState("");
+  const [percLuzProducao, setPercLuzProducao] = useState("100");
 
   // Campos modo gás
   const [valorGas, setValorGas] = useState("");
@@ -70,9 +71,11 @@ export function MaterialDrawer({ open, onOpenChange, modulo, material }: Materia
         .filter((v) => v > 0);
       if (v.length === 0) return null;
       const media = v.reduce((a, b) => a + b, 0) / v.length;
+      const perc = parseFloat(percLuzProducao.replace(",", ".")) || 100;
+      const custoDestinado = media * (perc / 100);
       const doces = parseFloat(docesLuz.replace(",", ".")) || 0;
-      if (doces <= 0) return media; // sem rateio ainda
-      return media / doces; // custo por doce
+      if (doces <= 0) return custoDestinado; // sem rateio ainda — retorna custo mensal atribuído
+      return custoDestinado / doces; // custo por doce
     }
     if (modo === "gas") {
       const val = parseFloat(valorGas.replace(",", ".")) || 0;
@@ -99,7 +102,6 @@ export function MaterialDrawer({ open, onOpenChange, modulo, material }: Materia
     if (modo === "luz") {
       if (!custoCalculado) { toast.error("Informe ao menos uma conta de luz."); return; }
       nomeFinal = nomeFinal || "Energia Elétrica";
-      // Salva como: 1 doce = custo calculado (media / doces_por_mes)
       qtdFinal = 1;
       custoFinal = custoCalculado;
       unidadeFinal = parseFloat((docesLuz||"0").replace(",",".")) > 0 ? "doce" : "mês";
@@ -243,15 +245,30 @@ export function MaterialDrawer({ open, onOpenChange, modulo, material }: Materia
                   className="h-12 w-full rounded-2xl border border-outline-variant/60 bg-surface px-4 text-sm outline-none focus:border-primary" />
                 <p className="text-[10px] text-muted-foreground mt-1 px-1">Quantos doces você produz por mês usando energia elétrica?</p>
               </div>
+              <div>
+                <label className="text-[11px] font-bold text-muted-foreground block mb-1">
+                  % da conta destinado à produção (0–100)
+                </label>
+                <input value={percLuzProducao} onChange={(e) => setPercLuzProducao(e.target.value)}
+                  inputMode="decimal" placeholder="Ex: 40 (se 40% da luz é da cozinha de produção)" className="h-12 w-full rounded-2xl border border-outline-variant/60 bg-surface px-4 text-sm outline-none focus:border-primary" />
+                <p className="text-[10px] text-muted-foreground mt-1 px-1">
+                  Se a produção usa parte da residência, coloque menos que 100. Se é uma cozinha separada exclusiva, coloque 100.
+                </p>
+              </div>
               {custoCalculado !== null && (
-                <div className="p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200/40 space-y-0.5">
+                <div className="p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200/40 space-y-1">
                   {parseFloat((docesLuz||"").replace(",",".")) > 0 ? (
-                    <p className="text-xs font-bold text-amber-800 dark:text-amber-300">
-                      Custo de energia por doce: {brl(custoCalculado)}
-                    </p>
+                    <>
+                      <p className="text-xs font-bold text-amber-800 dark:text-amber-300">
+                        Custo de energia por doce: {brl(custoCalculado)}
+                      </p>
+                      <p className="text-[11px] text-amber-700 dark:text-amber-400">
+                        Média: R${(([ conta1,conta2,conta3].map(v=>parseFloat(v.replace(",","."))||0).filter(v=>v>0).reduce((a,b)=>a+b,0))/Math.max(1,[conta1,conta2,conta3].filter(v=>parseFloat(v.replace(",","."))||0>0).length)).toFixed(2)} × {percLuzProducao||100}% ÷ {docesLuz} doces = {brl(custoCalculado)}/doce
+                      </p>
+                    </>
                   ) : (
                     <p className="text-xs font-bold text-amber-800 dark:text-amber-300">
-                      Média mensal: {brl(custoCalculado)} — informe os doces/mês para calcular por unidade
+                      Custo mensal atribuído à produção: {brl(custoCalculado)} — informe os doces/mês para calcular por unidade
                     </p>
                   )}
                 </div>

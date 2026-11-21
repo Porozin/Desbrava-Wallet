@@ -76,6 +76,7 @@ function Home() {
 
   const [period, setPeriod] = useState<Period>("all");
   const [transferOpen, setTransferOpen] = useState(false);
+  const [showAllTx, setShowAllTx] = useState(false);
 
   const latest = all[0]?.date ?? new Date().toISOString().slice(0, 10);
   const cutoff =
@@ -363,11 +364,27 @@ function Home() {
           <h2 className="text-base font-bold text-foreground">
             Todas as Movimentações
           </h2>
-          <span className="text-xs text-muted-foreground">
-            {items.length} registro(s)
-          </span>
+          <button
+            type="button"
+            onClick={() => setShowAllTx((v) => !v)}
+            className="text-xs font-bold text-primary hover:underline"
+          >
+            {showAllTx ? "Mostrar menos ↑" : `Ver todas (${items.length}) ↓`}
+          </button>
         </div>
-        <ResponsiveTransactionList items={items.slice(0, 10)} title="" />
+        <ResponsiveTransactionList
+          items={showAllTx ? items : items.slice(0, 8)}
+          title=""
+        />
+        {!showAllTx && items.length > 8 && (
+          <button
+            type="button"
+            onClick={() => setShowAllTx(true)}
+            className="w-full h-10 rounded-2xl border border-outline-variant/40 text-xs font-bold text-muted-foreground hover:bg-surface-container hover:text-foreground transition-all"
+          >
+            + {items.length - 8} movimentações ocultas — toque para ver todas
+          </button>
+        )}
       </div>
 
       {/* Drawer de Transferência */}

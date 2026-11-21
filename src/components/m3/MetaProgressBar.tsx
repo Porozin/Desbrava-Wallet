@@ -111,8 +111,8 @@ export function MetaProgressBar({ lucroDoceria, lucroVendas }: MetaProgressBarPr
   const canRecord = useCanRecord();
   const [aporteDrawer, setAporteDrawer] = useState<Meta | null>(null);
 
-  // Só exibe metas aprovadas
-  const ativas = metas.filter((m) => m.status === "aprovada" || m.status === "concluida");
+  // Exibe aprovadas, concluídas e pendentes (admin ainda não aprovou)
+  const ativas = metas.filter((m) => m.status === "aprovada" || m.status === "concluida" || m.status === "pendente");
 
   if (ativas.length === 0) return null;
 
@@ -154,6 +154,7 @@ export function MetaProgressBar({ lucroDoceria, lucroVendas }: MetaProgressBarPr
                     <p className="text-[11px] text-muted-foreground">
                       {meta.tipo === "lucro_automatico" ? "⚡ Por lucro das vendas" : "🎯 Por destinação manual"}
                       {meta.caixa_origem && ` · ${CASH_BOX_LABEL[meta.caixa_origem as CashBoxId] ?? meta.caixa_origem}`}
+                      {meta.status === "pendente" && <span className="ml-1 px-1.5 py-0.5 rounded text-[10px] bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 font-bold">aguardando aprovação</span>}
                     </p>
                   </div>
                 </div>

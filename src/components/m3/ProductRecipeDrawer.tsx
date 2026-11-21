@@ -29,7 +29,7 @@ export function ProductRecipeDrawer({
   onSuccess,
 }: ProductRecipeDrawerProps) {
   const qc = useQueryClient();
-  const materiais = useMateriais(modulo === "doceria" ? "doceria" : "clube");
+  const materiais = useMateriais("doceria"); // produtos de doceria e vendas usam insumos da doceria
   const isEdit = !!produto;
 
   const [nome, setNome] = useState("");
