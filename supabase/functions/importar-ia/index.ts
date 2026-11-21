@@ -67,12 +67,16 @@ async function callNvidia(prompt: string): Promise<ItemImportado[]> {
     body: JSON.stringify({
       model: NVIDIA_MODEL,
       messages: [
-        { role: "system", content: "Voce e um extrator de dados financeiros. Responda SOMENTE JSON valido, sem markdown, sem texto extra." },
-        { role: "user",   content: prompt },
+        {
+          role: "system",
+          content: "Voce e um extrator de dados. Responda APENAS com um array JSON valido. Nenhum texto, nenhum markdown, nenhum <think>, nenhuma explicacao. So o array JSON.",
+        },
+        { role: "user", content: prompt },
       ],
-      temperature: 0.1,
+      temperature: 0.0,
       top_p: 0.9,
       max_tokens: 4096,
+      chat_template_kwargs: { enable_thinking: false },
     }),
   });
 
@@ -82,55 +86,66 @@ async function callNvidia(prompt: string): Promise<ItemImportado[]> {
   }
 
   const json = await res.json();
-  const raw: string = json?.choices?.[0]?.message?.content ?? "[]";
+  const assistantMsg = json?.choices?.[0]?.message;
 
-  // Log para debug — aparece nos logs da edge function no Supabase Dashboard
-  console.log("[importar-ia] raw response:", raw.slice(0, 500));
+  // O nemotron pode colocar o thinking em 'reasoning_content' separado ou dentro de <think>
+  // Pegamos sempre o 'content' e removemos qualquer bloco de thinking/tool
+  let raw: string = assistantMsg?.content ?? "[]";
 
-  // Remove markdown code fences se existirem
-  let cleaned = raw
-    .replace(/```json\s*/gi, "")
-    .replace(/```\s*/g, "")
-    .trim();
+  // Log para debug
+  console.log("[importar-ia] raw (primeiros 600):", raw.slice(0, 600));
 
-  // Remove texto antes do primeiro [ ou {
-  const arrayStart = cleaned.indexOf("[");
-  const objStart   = cleaned.indexOf("{");
-  if (arrayStart !== -1 && (objStart === -1 || arrayStart <= objStart)) {
-    cleaned = cleaned.slice(arrayStart);
-  } else if (objStart !== -1) {
-    cleaned = cleaned.slice(objStart);
-  }
+  // Remove blocos <think>...</think> que o modelo emite mesmo com enable_thinking:false
+  raw = raw.replace(/<think>[\s\S]*?<\/think>/gi, "");
+  // Remove tool_call artifacts
+  raw = raw.replace(/<tool_call>[\s\S]*?<\/tool_call>/gi, "");
+  raw = raw.replace(/<function[\s\S]*?<\/function>/gi, "");
+  // Remove markdown code fences
+  raw = raw.replace(/```json\s*/gi, "").replace(/```\s*/g, "");
+  raw = raw.trim();
 
-  // Remove texto depois do último ] ou }
-  const arrayEnd = cleaned.lastIndexOf("]");
-  const objEnd   = cleaned.lastIndexOf("}");
-  if (arrayEnd !== -1 && arrayEnd >= objEnd) {
-    cleaned = cleaned.slice(0, arrayEnd + 1);
-  } else if (objEnd !== -1) {
-    cleaned = cleaned.slice(0, objEnd + 1);
+  // Extrai o primeiro array ou objeto JSON do texto
+  // (o modelo às vezes coloca texto antes do JSON)
+  const arrIdx = raw.indexOf("[");
+  const objIdx = raw.indexOf("{");
+  let jsonStr = raw;
+  if (arrIdx !== -1 && (objIdx === -1 || arrIdx <= objIdx)) {
+    // Array JSON — recorta do [ até o ] correspondente
+    let depth = 0, end = -1;
+    for (let i = arrIdx; i < raw.length; i++) {
+      if (raw[i] === "[") depth++;
+      else if (raw[i] === "]") { depth--; if (depth === 0) { end = i; break; } }
+    }
+    jsonStr = end !== -1 ? raw.slice(arrIdx, end + 1) : raw.slice(arrIdx);
+  } else if (objIdx !== -1) {
+    let depth = 0, end = -1;
+    for (let i = objIdx; i < raw.length; i++) {
+      if (raw[i] === "{") depth++;
+      else if (raw[i] === "}") { depth--; if (depth === 0) { end = i; break; } }
+    }
+    jsonStr = end !== -1 ? raw.slice(objIdx, end + 1) : raw.slice(objIdx);
   }
 
   let parsed: unknown;
   try {
-    parsed = JSON.parse(cleaned);
+    parsed = JSON.parse(jsonStr);
   } catch (e) {
-    console.error("[importar-ia] JSON.parse failed:", cleaned.slice(0, 300), e);
+    console.error("[importar-ia] JSON.parse failed. jsonStr:", jsonStr.slice(0, 400));
     return [];
   }
 
   // Array direto
   if (Array.isArray(parsed)) return parsed as ItemImportado[];
 
-  // Objeto wrapper — tenta extrair o array de qualquer chave
+  // Objeto wrapper — extrai o primeiro valor que for array
   if (parsed && typeof parsed === "object") {
-    const obj = parsed as Record<string, unknown>;
-    for (const key of Object.keys(obj)) {
-      if (Array.isArray(obj[key])) return obj[key] as ItemImportado[];
+    for (const key of Object.keys(parsed as object)) {
+      const val = (parsed as Record<string, unknown>)[key];
+      if (Array.isArray(val)) return val as ItemImportado[];
     }
   }
 
-  console.warn("[importar-ia] Unexpected response shape:", typeof parsed);
+  console.warn("[importar-ia] shape inesperado:", JSON.stringify(parsed).slice(0, 200));
   return [];
 }
 
