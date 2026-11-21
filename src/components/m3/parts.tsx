@@ -119,7 +119,6 @@ export function NewEntryFab({
   const [amountValue, setAmountValue] = useState("");
   const canRecord = useCanRecord();
   const { vibrate } = useHaptic();
-  if (!canRecord) return null;
 
   const targetBoxId: CashBoxId = boxId || (module === "clube" ? "geral" : (module as CashBoxId));
   const { categories, addCategory } = useCategories(targetBoxId);
@@ -127,6 +126,9 @@ export function NewEntryFab({
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [newCatInput, setNewCatInput] = useState("");
+
+  // Guard depois de todos os hooks
+  if (!canRecord) return null;
 
   const currentCategory = selectedCategory || categories[0] || "Geral";
 
