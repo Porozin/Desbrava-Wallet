@@ -74,8 +74,8 @@ export function MaterialDrawer({ open, onOpenChange, modulo, material }: Materia
       const perc = parseFloat(percLuzProducao.replace(",", ".")) || 100;
       const custoDestinado = media * (perc / 100);
       const doces = parseFloat(docesLuz.replace(",", ".")) || 0;
-      if (doces <= 0) return custoDestinado; // sem rateio ainda — retorna custo mensal atribuído
-      return custoDestinado / doces; // custo por doce
+      if (doces <= 0) return null; // precisa dos doces/mês para calcular custo unitário
+      return custoDestinado / doces; // custo por doce = (média × %) ÷ doces/mês
     }
     if (modo === "gas") {
       const val = parseFloat(valorGas.replace(",", ".")) || 0;
@@ -100,11 +100,11 @@ export function MaterialDrawer({ open, onOpenChange, modulo, material }: Materia
     let unidadeFinal = unidade;
 
     if (modo === "luz") {
-      if (!custoCalculado) { toast.error("Informe ao menos uma conta de luz."); return; }
+      if (!custoCalculado) { toast.error("Informe as contas de luz e a quantidade de doces produzidos por mês."); return; }
       nomeFinal = nomeFinal || "Energia Elétrica";
       qtdFinal = 1;
       custoFinal = custoCalculado;
-      unidadeFinal = parseFloat((docesLuz||"0").replace(",",".")) > 0 ? "doce" : "mês";
+      unidadeFinal = "doce";
     } else if (modo === "gas") {
       if (!custoCalculado) { toast.error("Preencha todos os campos para calcular o custo."); return; }
       nomeFinal = nomeFinal || "Gás de Cozinha";
@@ -255,24 +255,35 @@ export function MaterialDrawer({ open, onOpenChange, modulo, material }: Materia
                   Se a produção usa parte da residência, coloque menos que 100. Se é uma cozinha separada exclusiva, coloque 100.
                 </p>
               </div>
-              {custoCalculado !== null && (
-                <div className="p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200/40 space-y-1">
-                  {parseFloat((docesLuz||"").replace(",",".")) > 0 ? (
-                    <>
-                      <p className="text-xs font-bold text-amber-800 dark:text-amber-300">
-                        Custo de energia por doce: {brl(custoCalculado)}
-                      </p>
-                      <p className="text-[11px] text-amber-700 dark:text-amber-400">
-                        Média: R${(([ conta1,conta2,conta3].map(v=>parseFloat(v.replace(",","."))||0).filter(v=>v>0).reduce((a,b)=>a+b,0))/Math.max(1,[conta1,conta2,conta3].filter(v=>parseFloat(v.replace(",","."))||0>0).length)).toFixed(2)} × {percLuzProducao||100}% ÷ {docesLuz} doces = {brl(custoCalculado)}/doce
-                      </p>
-                    </>
-                  ) : (
+              {(() => {
+                const temContas = [conta1, conta2, conta3].some(v => parseFloat(v.replace(",", ".")) > 0);
+                const doces = parseFloat(docesLuz.replace(",", ".")) || 0;
+                const perc = parseFloat(percLuzProducao.replace(",", ".")) || 100;
+                const vals = [conta1, conta2, conta3].map(v => parseFloat(v.replace(",", ".")) || 0).filter(v => v > 0);
+                const media = vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+                const custoDestinado = media * (perc / 100);
+                if (!temContas) return null;
+                if (doces <= 0) return (
+                  <div className="p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200/40">
                     <p className="text-xs font-bold text-amber-800 dark:text-amber-300">
-                      Custo mensal atribuído à produção: {brl(custoCalculado)} — informe os doces/mês para calcular por unidade
+                      Média mensal atribuída à produção: {brl(custoDestinado)}
                     </p>
-                  )}
-                </div>
-              )}
+                    <p className="text-[11px] text-amber-700 dark:text-amber-400 mt-0.5">
+                      ⚠️ Informe os doces/mês para calcular o custo por unidade
+                    </p>
+                  </div>
+                );
+                return (
+                  <div className="p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200/40 space-y-1">
+                    <p className="text-xs font-bold text-amber-800 dark:text-amber-300">
+                      Custo de energia por doce: {brl(custoDestinado / doces)}
+                    </p>
+                    <p className="text-[11px] text-amber-700 dark:text-amber-400">
+                      R${media.toFixed(2)} × {perc}% ÷ {doces} doces = {brl(custoDestinado / doces)}/doce
+                    </p>
+                  </div>
+                );
+              })()}
             </>
           )}
 
