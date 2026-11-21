@@ -18,6 +18,7 @@ import {
   Globe,
   Share2,
   Trash2,
+  Upload,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/m3/AppShell";
@@ -49,6 +50,7 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/u
 import { ReportsCenterDrawer } from "@/components/m3/ReportsCenterDrawer";
 import { WipeDataDrawer } from "@/components/m3/WipeDataDrawer";
 import { PendingApprovalsDrawer } from "@/components/m3/PendingApprovalsDrawer";
+import { ImportarDrawer } from "@/components/m3/ImportarDrawer";
 
 export const Route = createFileRoute("/_authenticated/mais")({
   head: () => ({
@@ -84,8 +86,9 @@ function Mais() {
   const [pagamentoOpcaoDrawer, setPagamentoOpcaoDrawer] = useState<Divida | null>(null);
   const [usersDrawerOpen, setUsersDrawerOpen] = useState(false);
   const [reportsDrawerOpen, setReportsDrawerOpen] = useState(false);
-  const [wipeDrawerOpen, setWipeDrawerOpen] = useState(false);
+  const [wipeDrawerOpen, setWipeDrawerOpen]           = useState(false);
   const [approvalsDrawerOpen, setApprovalsDrawerOpen] = useState(false);
+  const [importarOpen, setImportarOpen]               = useState(false);
   const [backupWebhook, setBackupWebhook] = useState(
     () => localStorage.getItem("gda_backup_webhook") || ""
   );
@@ -264,6 +267,12 @@ function Mais() {
       onClick: () => setReportsDrawerOpen(true),
       highlight: true,
     },
+    ...(isManager ? [{
+      icon: Upload,
+      label: "Importação Inteligente",
+      sub: "Cole anotações ou .txt — a IA classifica, você revisa e confirma",
+      onClick: () => setImportarOpen(true),
+    }] : []),
     {
       icon: Globe,
       label: "Portal da Transparência Pública",
@@ -696,6 +705,11 @@ function Mais() {
           open={wipeDrawerOpen}
           onOpenChange={setWipeDrawerOpen}
         />
+      )}
+
+      {/* Drawer: Importação Inteligente */}
+      {isManager && (
+        <ImportarDrawer open={importarOpen} onOpenChange={setImportarOpen} />
       )}
     </AppShell>
   );
