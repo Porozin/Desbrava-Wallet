@@ -245,6 +245,13 @@ export async function deleteTransaction(transactionId: string) {
 }
 
 export async function reverseTransaction(transactionId: string, reason: string) {
+  // Busca a transação antes de estornar para verificar se é aporte de meta
+  const { data: original } = await supabase
+    .from("transactions")
+    .select("id, description, category, amount_cents, amount")
+    .eq("id", transactionId)
+    .single();
+
   // Tenta a RPC oficial (disponível após migration 0004)
   const { data, error } = await supabase.rpc("sp_estornar_transacao", {
     p_transaction_id: transactionId,
@@ -253,15 +260,13 @@ export async function reverseTransaction(transactionId: string, reason: string) 
 
   // Fallback: se a RPC não existir ainda no banco, faz estorno via insert direto
   if (error && (error.message.includes("Could not find the function") || error.code === "PGRST202")) {
-    // Busca a transação original
-    const { data: original, error: fetchErr } = await supabase
+    const { data: orig2, error: fetchErr } = await supabase
       .from("transactions")
       .select("*")
       .eq("id", transactionId)
       .single();
-    if (fetchErr || !original) throw new Error("Transação original não encontrada.");
+    if (fetchErr || !orig2) throw new Error("Transação original não encontrada.");
 
-    // Verifica se já existe um estorno para esta transação
     const { data: existing } = await supabase
       .from("transactions")
       .select("id")
@@ -272,22 +277,46 @@ export async function reverseTransaction(transactionId: string, reason: string) 
       throw new Error("Esta transação já foi estornada anteriormente.");
     }
 
-    // Insere lançamento compensatório (tipo invertido)
-    const reverseKind = original.kind === "receita" ? "despesa" : "receita";
+    const reverseKind = orig2.kind === "receita" ? "despesa" : "receita";
     const { error: insertErr } = await supabase.from("transactions").insert({
-      module: original.module,
+      module: orig2.module,
       kind: reverseKind,
-      amount: original.amount,
-      category: original.category || "Estorno",
+      amount: orig2.amount,
+      category: orig2.category || "Estorno",
       description: `[ESTORNO] ${reason} (ref: ${transactionId.slice(0, 8)})`,
       date: new Date().toISOString().slice(0, 10),
-      seller: original.seller,
+      seller: orig2.seller,
     });
     if (insertErr) throw insertErr;
     return { status: "estornado_fallback" };
   }
 
   if (error) throw error;
+
+  // Se era um aporte de meta, decrementar valor_atual na meta correspondente
+  if (original && original.category === "Meta" && original.description) {
+    const match = original.description.match(/\[meta:([a-f0-9-]{36})\]/);
+    if (match) {
+      const metaId = match[1];
+      const { data: meta } = await supabase
+        .from("metas")
+        .select("valor_atual, valor_alvo")
+        .eq("id", metaId)
+        .single();
+      if (meta) {
+        const amountReturned = original.amount_cents
+          ? original.amount_cents / 100
+          : original.amount;
+        const novoValor = Math.max(0, Number(meta.valor_atual) - amountReturned);
+        const novoStatus = novoValor * 100 >= Number(meta.valor_alvo) * 100 ? "concluida" : "aprovada";
+        await supabase
+          .from("metas")
+          .update({ valor_atual: novoValor, status: novoStatus })
+          .eq("id", metaId);
+      }
+    }
+  }
+
   return data;
 }
 
@@ -378,6 +407,9 @@ export async function addMeta(m: Omit<Meta, "id">) {
     unidade_nome: m.unidade_nome ?? null,
     descricao: m.descricao,
     valor_alvo: m.valor_alvo,
+    valor_atual: m.valor_atual ?? 0,
+    tipo: m.tipo ?? "destinacao_manual",
+    caixa_origem: m.caixa_origem ?? null,
     status: m.status || "aprovada",
     sugerido_por: m.sugerido_por ?? null,
   });
@@ -403,14 +435,15 @@ export async function aportarMeta(params: {
   valorAlvoCents: number;
 }) {
   const mutationId = crypto.randomUUID();
-  // Registra a saída do caixa como despesa destinada à meta
+  // Inclui o meta_id na descrição para que um eventual estorno possa decrementar valor_atual
+  const description = `Aporte para meta: ${params.metaDescricao} [meta:${params.metaId}]`;
   const { error: txError } = await supabase.rpc("sp_registrar_transacao_oficial", {
     p_client_mutation_id: mutationId,
     p_cash_box_id: params.cashBoxId,
     p_kind: "despesa",
     p_amount_cents: params.amountCents,
     p_category: "Meta",
-    p_description: `Aporte para meta: ${params.metaDescricao}`,
+    p_description: description,
     p_payment_method: "dinheiro",
     p_date: new Date().toISOString().slice(0, 10),
     p_seller: null,

@@ -6,6 +6,7 @@ import {
   Printer,
   Package,
   Target,
+  Trophy,
   Plus,
   Pencil,
 } from "lucide-react";
@@ -17,6 +18,7 @@ import {
   ResponsiveTransactionList,
   CashBoxHeaderCard,
 } from "@/components/m3/parts";
+import { MetaProgressBar } from "@/components/m3/MetaProgressBar";
 import { brl, summarizeBox } from "@/lib/finance";
 import {
   useTransactions,
@@ -218,7 +220,7 @@ function Clube() {
             <h2 className="text-base font-bold text-foreground">Metas Financeiras do Clube</h2>
             {canRecord && (
               <button
-                onClick={() => setMetaDrawerOpen(true)}
+                onClick={() => { setEditMeta(undefined); setMetaDrawerOpen(true); }}
                 className="flex items-center gap-1 text-xs font-bold text-primary hover:underline"
               >
                 <Plus className="size-4" /> Nova Meta
@@ -231,37 +233,68 @@ function Clube() {
               Nenhuma meta cadastrada ainda.
             </div>
           ) : (
-            <div className="grid gap-3 sm:grid-cols-2">
-              {metas.map((m) => (
-                <div
-                  key={m.id}
-                  className="p-5 rounded-3xl bg-surface-container-low border border-outline-variant/20 flex flex-col justify-between"
-                >
-                  <div>
-                    <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                      <Target className="size-3.5 text-primary" /> Alvo do Clube
-                    </span>
-                    <h3 className="text-base font-bold text-foreground mt-1">{m.descricao}</h3>
-                  </div>
-                  <div className="mt-4 flex items-center justify-between border-t border-outline-variant/20 pt-3">
-                    <span className="text-sm font-black text-primary">{brl(m.valor_alvo)}</span>
-                    <div className="flex items-center gap-2">
-                      <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-secondary-container text-on-secondary-container">
-                        {m.status}
-                      </span>
-                      {canRecord && (
-                        <button
-                          onClick={() => { setEditMeta(m); setMetaDrawerOpen(true); }}
-                          className="p-1.5 rounded-full hover:bg-surface-variant/60 text-muted-foreground hover:text-primary transition-colors"
-                          title="Editar meta"
-                        >
-                          <Pencil className="size-3.5" />
-                        </button>
-                      )}
+            <div className="space-y-3">
+              {metas.map((m) => {
+                const isConcluida = m.status === "concluida";
+                const progresso = m.valor_alvo > 0
+                  ? Math.min(100, (m.valor_atual / m.valor_alvo) * 100)
+                  : 0;
+                return (
+                  <div
+                    key={m.id}
+                    className={`rounded-3xl border p-4 space-y-3 ${
+                      isConcluida
+                        ? "bg-secondary-container/30 border-secondary/30"
+                        : m.status === "pendente"
+                        ? "bg-surface-container-low border-outline-variant/20 opacity-80"
+                        : "bg-surface-container-low border-outline-variant/20"
+                    }`}
+                  >
+                    {/* Cabeçalho */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        {isConcluida
+                          ? <Trophy className="size-4 text-secondary shrink-0" />
+                          : <Target className="size-4 text-primary shrink-0" />}
+                        <div className="min-w-0">
+                          <p className="text-sm font-bold text-foreground truncate">{m.descricao}</p>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">
+                            {m.tipo === "lucro_automatico" ? "⚡ Por lucro das vendas" : "🎯 Por destinação manual"}
+                            {m.status === "pendente" && (
+                              <span className="ml-1.5 px-1.5 py-0.5 rounded text-[10px] bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 font-bold">
+                                aguardando aprovação
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <div className="text-right">
+                          <p className="text-xs font-black text-primary">{progresso.toFixed(0)}%</p>
+                          <p className="text-[10px] text-muted-foreground">{brl(m.valor_atual)} / {brl(m.valor_alvo)}</p>
+                        </div>
+                        {canRecord && (
+                          <button
+                            onClick={() => { setEditMeta(m); setMetaDrawerOpen(true); }}
+                            className="p-1.5 rounded-full hover:bg-surface-variant/60 text-muted-foreground hover:text-primary transition-colors"
+                            title="Editar meta"
+                          >
+                            <Pencil className="size-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Barra de progresso */}
+                    <div className="h-2.5 w-full rounded-full bg-surface-container-highest overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-700 ${isConcluida ? "bg-secondary" : "bg-primary"}`}
+                        style={{ width: `${progresso}%` }}
+                      />
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
