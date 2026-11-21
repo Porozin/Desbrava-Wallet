@@ -243,7 +243,6 @@ export function AtlasAiDrawer({ open, onOpenChange }: Props) {
             </motion.div>
           ))}
           </AnimatePresence>
-          ))}
           <div ref={bottomRef} />
         </div>
 
