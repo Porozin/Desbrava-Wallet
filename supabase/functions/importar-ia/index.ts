@@ -36,37 +36,23 @@ interface ConfirmarBody {
 // ── prompt de extração ─────────────────────────────────────────────────────
 function buildExtractionPrompt(chunk: string): string {
   const hoje = new Date().toISOString().slice(0, 10);
-  return `Voce e um extrator de dados financeiros para um clube de desbravadores brasileiro.
-Data de hoje: ${hoje}.
-Analise as linhas abaixo e retorne um array JSON com um objeto por item financeiro identificado.
-Uma linha pode gerar mais de um item (ex: venda + divida).
-Nao inclua nenhum texto fora do JSON — responda SOMENTE o array JSON valido.
+  const ano = hoje.slice(0, 4);
+  return `Data hoje: ${hoje}. Responda SOMENTE um array JSON valido, sem nenhum texto antes ou depois.
 
-Formato de cada objeto:
-{
-  "tipo": "venda|entrada|saida|divida_a_receber|divida_a_pagar|pagamento_divida|outro",
-  "data": "YYYY-MM-DD ou null",
-  "valor": numero,
-  "descricao": "string curta",
-  "entidade": "nome da pessoa/empresa ou null",
-  "categoria": "categoria ou null",
-  "conta_destino": "geral|doceria|vendas|null",
-  "confianca": 0.0 a 1.0,
-  "linha_original": "linha exata do texto",
-  "observacao_ia": "duvida ou suposicao feita, ou null"
-}
+Cada item do array:
+{"tipo":"venda|entrada|saida|divida_a_receber|divida_a_pagar|pagamento_divida|outro","data":"${ano}-MM-DD ou null","valor":numero,"descricao":"texto curto","entidade":"nome ou null","categoria":"categoria ou null","conta_destino":"geral|doceria|vendas|null","confianca":0.0_a_1.0,"linha_original":"linha exata","observacao_ia":"duvida ou null"}
 
 Regras:
-- Formatos brasileiros: "R$ 1.250,50", "50 reais", "1,5k", datas "21/11", "ontem", "dia 15"
-- Se a data tiver so dia/mes, use o ano atual (${hoje.slice(0, 4)}); sem data = null
-- "fulano me deve", "fiado", "ficou devendo" = divida_a_receber
-- "devo pro fulano" = divida_a_pagar
-- "fulano pagou X" = pagamento_divida
-- Se nao entender a linha, tipo = "outro", confianca baixa, explique em observacao_ia
-- Nunca invente valores: se incerto, marque confianca < 0.6 e explique
-- Listas de nomes sem valor = ignorar (retornar array vazio para aquela linha)
+- Formatos brasileiros: "R$ 1.250,50", "50 reais", "1,5k", "dia 20/11" vira "${ano}-11-20"
+- "X de Y" ou "Y: X" onde Y e nome = venda com entidade Y e valor X
+- "fulano me deve / fiado / ficou devendo" = divida_a_receber
+- "devo pro fulano" = divida_a_pagar; "fulano pagou X" = pagamento_divida
+- Entrada/receita sem remetente = entrada; venda com cliente = venda
+- Linhas de data ("dia 20/11", "19/11") descrevem o contexto das linhas seguintes — nao gere item para elas, aplique a data nos itens seguintes
+- Se nao houver valor claro: confianca < 0.5 e explique em observacao_ia
+- Uma linha pode gerar multiplos itens (ex: "vendi 2 tortinhas a 10 pro Pedro, ficou devendo 5" = venda 20 + divida 5)
 
-Linhas para analisar:
+Texto para analisar:
 ${chunk}`;
 }
 
@@ -98,11 +84,54 @@ async function callNvidia(prompt: string): Promise<ItemImportado[]> {
   const json = await res.json();
   const raw: string = json?.choices?.[0]?.message?.content ?? "[]";
 
-  // extrai o JSON mesmo que venha envolvido em ``json...``
-  const cleaned = raw.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
-  const parsed = JSON.parse(cleaned);
-  if (!Array.isArray(parsed)) return [];
-  return parsed as ItemImportado[];
+  // Log para debug — aparece nos logs da edge function no Supabase Dashboard
+  console.log("[importar-ia] raw response:", raw.slice(0, 500));
+
+  // Remove markdown code fences se existirem
+  let cleaned = raw
+    .replace(/```json\s*/gi, "")
+    .replace(/```\s*/g, "")
+    .trim();
+
+  // Remove texto antes do primeiro [ ou {
+  const arrayStart = cleaned.indexOf("[");
+  const objStart   = cleaned.indexOf("{");
+  if (arrayStart !== -1 && (objStart === -1 || arrayStart <= objStart)) {
+    cleaned = cleaned.slice(arrayStart);
+  } else if (objStart !== -1) {
+    cleaned = cleaned.slice(objStart);
+  }
+
+  // Remove texto depois do último ] ou }
+  const arrayEnd = cleaned.lastIndexOf("]");
+  const objEnd   = cleaned.lastIndexOf("}");
+  if (arrayEnd !== -1 && arrayEnd >= objEnd) {
+    cleaned = cleaned.slice(0, arrayEnd + 1);
+  } else if (objEnd !== -1) {
+    cleaned = cleaned.slice(0, objEnd + 1);
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(cleaned);
+  } catch (e) {
+    console.error("[importar-ia] JSON.parse failed:", cleaned.slice(0, 300), e);
+    return [];
+  }
+
+  // Array direto
+  if (Array.isArray(parsed)) return parsed as ItemImportado[];
+
+  // Objeto wrapper — tenta extrair o array de qualquer chave
+  if (parsed && typeof parsed === "object") {
+    const obj = parsed as Record<string, unknown>;
+    for (const key of Object.keys(obj)) {
+      if (Array.isArray(obj[key])) return obj[key] as ItemImportado[];
+    }
+  }
+
+  console.warn("[importar-ia] Unexpected response shape:", typeof parsed);
+  return [];
 }
 
 // ── handler principal ───────────────────────────────────────────────────────
@@ -198,6 +227,7 @@ Deno.serve(async (req: Request) => {
       return { ...item, possivel_duplicata: isDup };
     });
 
+    console.log(`[importar-ia] analise: ${todosComDup.length} itens, ${chunks.length} chunks, ${erros.length} erros`);
     return Response.json(
       {
         itens: todosComDup,
