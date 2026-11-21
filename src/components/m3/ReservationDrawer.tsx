@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Lock, Unlock, CheckCircle2, AlertCircle, Plus, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
@@ -7,7 +7,6 @@ import {
   CASH_BOX_LABEL,
   toCents,
   type CashBoxId,
-  summarizeBox,
 } from "@/lib/finance";
 import {
   createReservation,
@@ -15,8 +14,8 @@ import {
   consumeReservation,
   useCanRecord,
   useReservations,
-  useTransactions,
 } from "@/lib/data";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ReservationDrawerProps {
   open: boolean;
@@ -29,7 +28,6 @@ export const ReservationDrawer: React.FC<ReservationDrawerProps> = ({
   onOpenChange,
   boxId,
 }) => {
-  const allTx = useTransactions();
   const boxReservations = useReservations(boxId);
   const canRecord = useCanRecord();
 
@@ -38,10 +36,18 @@ export const ReservationDrawer: React.FC<ReservationDrawerProps> = ({
   const [description, setDescription] = useState("");
   const [amountStr, setAmountStr] = useState("");
   const [loading, setLoading] = useState(false);
+  const [saldoDisponivel, setSaldoDisponivel] = useState<number | null>(null);
 
-  const boxSummary = summarizeBox(allTx, boxId, boxReservations);
+  // Busca saldo disponível direto da RPC — muito mais rápido que calcular client-side
+  useEffect(() => {
+    if (!open) return;
+    supabase.rpc("fn_saldo_disponivel", { p_cash_box_id: boxId }).then(({ data }) => {
+      setSaldoDisponivel(data ?? 0);
+    });
+  }, [open, boxId]);
+
   const amountCents = toCents(amountStr);
-  const isInsufficient = amountCents > boxSummary.available_cents;
+  const isInsufficient = saldoDisponivel !== null && amountCents > saldoDisponivel;
 
   const activeRes = boxReservations.filter((r) => r.status === "ativa");
   const historyRes = boxReservations.filter((r) => r.status !== "ativa");
@@ -59,7 +65,7 @@ export const ReservationDrawer: React.FC<ReservationDrawerProps> = ({
     if (isInsufficient) {
       toast.error(
         `O valor supera o saldo disponível no ${CASH_BOX_LABEL[boxId]} (${brl(
-          boxSummary.available
+          (saldoDisponivel ?? 0) / 100
         )}).`
       );
       return;
@@ -129,7 +135,7 @@ export const ReservationDrawer: React.FC<ReservationDrawerProps> = ({
                   Reservas • {CASH_BOX_LABEL[boxId]}
                 </DrawerTitle>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Saldo comprometido sem saída de caixa: {brl(boxSummary.reserved)}
+                  Saldo comprometido sem saída de caixa: {brl((boxReservations.filter(r => r.status === "ativa").reduce((a, r) => a + r.amount_cents, 0)) / 100)}
                 </p>
               </div>
             </div>
@@ -169,7 +175,7 @@ export const ReservationDrawer: React.FC<ReservationDrawerProps> = ({
             <form onSubmit={handleCreate} className="space-y-4">
               <div className="bg-surface-container p-3 rounded-2xl border border-outline-variant/30 text-xs flex justify-between">
                 <span className="text-muted-foreground">Saldo Disponível para Reservar:</span>
-                <span className="font-bold text-income">{brl(boxSummary.available)}</span>
+                <span className="font-bold text-income">{brl((saldoDisponivel ?? 0) / 100)}</span>
               </div>
 
               <div>
@@ -202,7 +208,7 @@ export const ReservationDrawer: React.FC<ReservationDrawerProps> = ({
                 />
                 {isInsufficient && amountCents > 0 && (
                   <p className="text-xs font-bold text-expense mt-1">
-                    Valor excede o saldo disponível de {brl(boxSummary.available)}.
+                    Valor excede o saldo disponível de {brl((saldoDisponivel ?? 0) / 100)}.
                   </p>
                 )}
               </div>
