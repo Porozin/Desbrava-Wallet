@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Sparkles, Send, X, RotateCcw, Check, XCircle, Loader2 } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
 import { Drawer, DrawerContent } from "@/components/ui/drawer";
 import { useAtlasAi, type OperationProposal } from "@/hooks/useAtlasAi";
 import { brl } from "@/lib/finance";
@@ -42,7 +43,12 @@ function OperationCard({
   const label = OPERATION_LABELS[proposal.operation_type] ?? proposal.operation_type;
 
   return (
-    <div className="rounded-2xl border-2 border-primary/40 bg-primary-container/20 p-3 space-y-2 text-sm">
+    <motion.div
+      initial={{ opacity: 0, y: 8, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ type: "spring", stiffness: 340, damping: 28 }}
+      className="rounded-2xl border-2 border-primary/40 bg-primary-container/20 p-3 space-y-2 text-sm"
+    >
       <div className="flex items-center gap-1.5">
         <Sparkles className="size-4 text-primary" />
         <span className="font-bold text-foreground text-xs uppercase tracking-wide">{label}</span>
@@ -73,7 +79,7 @@ function OperationCard({
           <Check className="size-3.5" /> Confirmar
         </button>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -174,21 +180,33 @@ export function AtlasAiDrawer({ open, onOpenChange }: Props) {
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-2">
-                {QUICK_PROMPTS.map((p) => (
-                  <button
+                {QUICK_PROMPTS.map((p, i) => (
+                  <motion.button
                     key={p}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.06, type: "spring", stiffness: 320, damping: 28 }}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.96 }}
                     onClick={() => sendMessage(p)}
-                    className="p-3 rounded-2xl bg-surface-container-low border border-outline-variant/20 text-xs font-semibold text-foreground hover:bg-surface-container transition-all text-left"
+                    className="p-3 rounded-2xl bg-surface-container-low border border-outline-variant/20 text-xs font-semibold text-foreground hover:bg-surface-container transition-colors text-left"
                   >
                     {p}
-                  </button>
+                  </motion.button>
                 ))}
               </div>
             </div>
           )}
 
+          <AnimatePresence initial={false}>
           {messages.map((msg) => (
-            <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+            <motion.div
+              key={msg.id}
+              initial={{ opacity: 0, scale: 0.95, y: 6 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ type: "spring", stiffness: 340, damping: 28 }}
+              className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+            >
               <div
                 className={`max-w-[85%] rounded-3xl px-4 py-2.5 text-sm ${
                   msg.role === "user"
@@ -200,7 +218,12 @@ export function AtlasAiDrawer({ open, onOpenChange }: Props) {
               >
                 {msg.loading ? (
                   <div className="flex items-center gap-2 text-muted-foreground">
-                    <Loader2 className="size-3.5 animate-spin" />
+                    <motion.div
+                      animate={{ opacity: [0.4, 1, 0.4] }}
+                      transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
+                    >
+                      <Loader2 className="size-3.5 animate-spin" />
+                    </motion.div>
                     <span className="text-xs">Pensando…</span>
                   </div>
                 ) : (
@@ -217,7 +240,9 @@ export function AtlasAiDrawer({ open, onOpenChange }: Props) {
                   </div>
                 )}
               </div>
-            </div>
+            </motion.div>
+          ))}
+          </AnimatePresence>
           ))}
           <div ref={bottomRef} />
         </div>

@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import {
   Landmark,
   ArrowUpRight,
@@ -123,7 +124,12 @@ function Home() {
       </div>
 
       {/* Saldo Consolidado Principal */}
-      <div className="rounded-3xl bg-primary-container p-6 text-on-primary-container shadow-sm space-y-3">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.97 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ type: "spring", stiffness: 300, damping: 28 }}
+        className="rounded-3xl bg-primary-container p-6 text-on-primary-container shadow-sm space-y-3"
+      >
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold uppercase tracking-wider opacity-80">
             Patrimônio Líquido Consolidado
@@ -153,10 +159,18 @@ function Home() {
             </span>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Banner de Metas Concluídas */}
+      <AnimatePresence>
       {metasConcluidas.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: "auto" }}
+          exit={{ opacity: 0, height: 0 }}
+          transition={{ type: "spring", stiffness: 300, damping: 30 }}
+          className="overflow-hidden"
+        >
         <div className="rounded-3xl bg-secondary-container p-5 space-y-3 border border-secondary/20">
           <div className="flex items-center gap-2">
             <Trophy className="size-5 text-on-secondary-container" />
@@ -186,7 +200,9 @@ function Home() {
             Ver todas as metas →
           </Link>
         </div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
       {/* Visão Rápida dos 3 Caixas Fixos */}
       <div>
@@ -201,9 +217,16 @@ function Home() {
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {/* Caixa Geral */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ type: "spring", stiffness: 300, damping: 28, delay: 0 }}
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.98 }}
+          >
           <Link
             to="/clube"
-            className="rounded-2xl bg-surface-container-low p-4 border border-outline-variant/30 hover:bg-surface-container transition-all flex flex-col justify-between group"
+            className="rounded-2xl bg-surface-container-low p-4 border border-outline-variant/30 hover:bg-surface-container transition-colors flex flex-col justify-between group"
           >
             <div className="flex items-center justify-between text-muted-foreground">
               <span className="text-xs font-bold group-hover:text-primary transition-colors flex items-center gap-1.5">
@@ -228,11 +251,19 @@ function Home() {
               </span>
             )}
           </Link>
+          </motion.div>
 
           {/* Caixa Doceria */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ type: "spring", stiffness: 300, damping: 28, delay: 0.07 }}
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.98 }}
+          >
           <Link
             to="/doceria"
-            className="rounded-2xl bg-surface-container-low p-4 border border-outline-variant/30 hover:bg-surface-container transition-all flex flex-col justify-between group"
+            className="rounded-2xl bg-surface-container-low p-4 border border-outline-variant/30 hover:bg-surface-container transition-colors flex flex-col justify-between group"
           >
             <div className="flex items-center justify-between text-muted-foreground">
               <span className="text-xs font-bold group-hover:text-primary transition-colors flex items-center gap-1.5">
@@ -257,11 +288,19 @@ function Home() {
               </span>
             )}
           </Link>
+          </motion.div>
 
           {/* Caixa Vendas Rápidas */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ type: "spring", stiffness: 300, damping: 28, delay: 0.14 }}
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.98 }}
+          >
           <Link
             to="/vendas"
-            className="rounded-2xl bg-surface-container-low p-4 border border-outline-variant/30 hover:bg-surface-container transition-all flex flex-col justify-between group"
+            className="rounded-2xl bg-surface-container-low p-4 border border-outline-variant/30 hover:bg-surface-container transition-colors flex flex-col justify-between group"
           >
             <div className="flex items-center justify-between text-muted-foreground">
               <span className="text-xs font-bold group-hover:text-primary transition-colors flex items-center gap-1.5">
@@ -286,6 +325,7 @@ function Home() {
               </span>
             )}
           </Link>
+          </motion.div>
         </div>
       </div>
 

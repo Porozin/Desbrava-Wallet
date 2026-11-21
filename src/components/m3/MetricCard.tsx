@@ -1,4 +1,5 @@
 import React from "react";
+import { motion, AnimatePresence } from "motion/react";
 import type { LucideIcon } from "lucide-react";
 
 interface MetricCardProps {
@@ -33,8 +34,11 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   };
 
   return (
-    <div
-      className={`p-5 rounded-3xl transition-all active:scale-[0.99] flex flex-col justify-between ${variantStyles[variant]}`}
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ type: "spring", stiffness: 320, damping: 28 }}
+      className={`p-5 rounded-3xl flex flex-col justify-between ${variantStyles[variant]}`}
     >
       <div className="flex items-center justify-between gap-2">
         <span className="text-xs uppercase tracking-wider font-semibold opacity-80">
@@ -48,13 +52,22 @@ export const MetricCard: React.FC<MetricCardProps> = ({
       </div>
 
       <div className="mt-3">
-        <div className={`text-2xl font-black tracking-tight ${toneColor[tone]}`}>
-          {value}
-        </div>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={value}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.18 }}
+            className={`text-2xl font-black tracking-tight ${toneColor[tone]}`}
+          >
+            {value}
+          </motion.div>
+        </AnimatePresence>
         {subtitle && (
           <p className="text-xs mt-1 font-medium opacity-75">{subtitle}</p>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 };

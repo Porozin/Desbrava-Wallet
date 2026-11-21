@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import {
   ArrowUpRight,
   ArrowDownLeft,
@@ -113,7 +114,7 @@ export const ResponsiveTransactionList: React.FC<ResponsiveTransactionListProps>
 
         {/* Lista Mobile (Touch-Friendly) */}
         <div className="divide-y divide-outline-variant/20 block md:hidden">
-          {items.map((tx) => {
+          {items.map((tx, idx) => {
             const isTransfer = tx.kind === "transferencia";
             const origBox: CashBoxId =
               tx.cash_box_id ||
@@ -144,8 +145,11 @@ export const ResponsiveTransactionList: React.FC<ResponsiveTransactionListProps>
             const isStriked = tx.status === "estornado" || tx.status === "rejeitado";
 
             return (
-              <div
+              <motion.div
                 key={tx.id}
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ type: "spring", stiffness: 320, damping: 28, delay: idx * 0.04 }}
                 onClick={() => setSelectedTx(tx)}
                 className="py-3.5 flex items-center justify-between gap-3 active:bg-surface-variant/30 rounded-2xl px-2 transition-colors cursor-pointer"
               >
@@ -213,7 +217,7 @@ export const ResponsiveTransactionList: React.FC<ResponsiveTransactionListProps>
                 >
                   {displaySign} {brl(tx.amount)}
                 </div>
-              </div>
+              </motion.div>
             );
           })}
         </div>
@@ -441,85 +445,115 @@ export const ResponsiveTransactionList: React.FC<ResponsiveTransactionListProps>
               {canRecord &&
                 (selectedTx.status === "confirmado" || !selectedTx.status) && (
                   <div className="pt-2">
+                    <AnimatePresence mode="wait">
                     {!showReverseConfirm ? (
-                      <button
+                      <motion.button
+                        key="reverse-btn"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
                         type="button"
                         onClick={() => setShowReverseConfirm(true)}
                         className="w-full h-11 rounded-2xl border border-rose-300/60 text-rose-700 dark:text-rose-300 text-xs font-bold hover:bg-rose-50 dark:hover:bg-rose-950/30 flex items-center justify-center gap-1.5 transition-all"
                       >
                         <RotateCcw className="w-4 h-4" />
                         Estornar esta Movimentação
-                      </button>
+                      </motion.button>
                     ) : (
-                      <div className="space-y-3 p-3 rounded-2xl bg-surface border border-rose-300/50">
-                        <label className="text-xs font-bold text-rose-800 dark:text-rose-300 block">
-                          Justificativa Obrigatória do Estorno:
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="Informe o motivo detalhado do estorno"
-                          value={reverseReason}
-                          onChange={(e) => setReverseReason(e.target.value)}
-                          className="h-11 w-full rounded-xl border border-outline-variant/60 bg-surface px-3 text-xs text-foreground outline-none focus:border-rose-500"
-                        />
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setShowReverseConfirm(false)}
-                            className="flex-1 h-9 rounded-xl border border-outline-variant text-xs font-bold text-muted-foreground"
-                          >
-                            Cancelar
-                          </button>
-                          <button
-                            type="button"
-                            disabled={reversing || !reverseReason.trim()}
-                            onClick={handleReverse}
-                            className="flex-1 h-9 rounded-xl bg-rose-600 text-white text-xs font-bold disabled:opacity-50"
-                          >
-                            {reversing ? "Estornando…" : "Confirmar Estorno"}
-                          </button>
+                      <motion.div
+                        key="reverse-form"
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="space-y-3 p-3 rounded-2xl bg-surface border border-rose-300/50">
+                          <label className="text-xs font-bold text-rose-800 dark:text-rose-300 block">
+                            Justificativa Obrigatória do Estorno:
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="Informe o motivo detalhado do estorno"
+                            value={reverseReason}
+                            onChange={(e) => setReverseReason(e.target.value)}
+                            className="h-11 w-full rounded-xl border border-outline-variant/60 bg-surface px-3 text-xs text-foreground outline-none focus:border-rose-500"
+                          />
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setShowReverseConfirm(false)}
+                              className="flex-1 h-9 rounded-xl border border-outline-variant text-xs font-bold text-muted-foreground"
+                            >
+                              Cancelar
+                            </button>
+                            <button
+                              type="button"
+                              disabled={reversing || !reverseReason.trim()}
+                              onClick={handleReverse}
+                              className="flex-1 h-9 rounded-xl bg-rose-600 text-white text-xs font-bold disabled:opacity-50"
+                            >
+                              {reversing ? "Estornando…" : "Confirmar Estorno"}
+                            </button>
+                          </div>
                         </div>
-                      </div>
+                      </motion.div>
                     )}
+                    </AnimatePresence>
                   </div>
                 )}
 
               {/* Exclusão física — apenas Admin */}
               {isAdmin && selectedTx && (
                 <div className="pt-1">
+                  <AnimatePresence mode="wait">
                   {!showDeleteConfirm ? (
-                    <button
+                    <motion.button
+                      key="delete-btn"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
                       type="button"
                       onClick={() => setShowDeleteConfirm(true)}
                       className="w-full h-10 rounded-2xl border border-destructive/40 text-destructive text-xs font-bold hover:bg-destructive/10 flex items-center justify-center gap-1.5 transition-all"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                       Excluir permanentemente (Admin)
-                    </button>
+                    </motion.button>
                   ) : (
-                    <div className="space-y-2 p-3 rounded-2xl bg-destructive/10 border border-destructive/30">
-                      <p className="text-xs font-bold text-destructive">
-                        ⚠️ Exclusão irreversível — sem rastro no histórico. Confirmar?
-                      </p>
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setShowDeleteConfirm(false)}
-                          className="flex-1 h-9 rounded-xl border border-outline-variant text-xs font-semibold text-muted-foreground"
-                        >
-                          Cancelar
-                        </button>
-                        <button
-                          type="button"
-                          disabled={deleting}
-                          onClick={handleDelete}
-                          className="flex-1 h-9 rounded-xl bg-destructive text-white text-xs font-bold disabled:opacity-50"
-                        >
-                          {deleting ? "Excluindo…" : "Confirmar Exclusão"}
-                        </button>
+                    <motion.div
+                      key="delete-form"
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="space-y-2 p-3 rounded-2xl bg-destructive/10 border border-destructive/30">
+                        <p className="text-xs font-bold text-destructive">
+                          ⚠️ Exclusão irreversível — sem rastro no histórico. Confirmar?
+                        </p>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setShowDeleteConfirm(false)}
+                            className="flex-1 h-9 rounded-xl border border-outline-variant text-xs font-semibold text-muted-foreground"
+                          >
+                            Cancelar
+                          </button>
+                          <button
+                            type="button"
+                            disabled={deleting}
+                            onClick={handleDelete}
+                            className="flex-1 h-9 rounded-xl bg-destructive text-white text-xs font-bold disabled:opacity-50"
+                          >
+                            {deleting ? "Excluindo…" : "Confirmar Exclusão"}
+                          </button>
+                        </div>
                       </div>
-                    </div>
+                    </motion.div>
                   )}
+                  </AnimatePresence>
                 </div>
               )}
             </>

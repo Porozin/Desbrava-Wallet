@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Minus, Plus, ShoppingCart, X, Check, Cake, Zap } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { brl, toCents, type CashBoxId, type Module } from "@/lib/finance";
@@ -138,9 +139,11 @@ export function PdvGrid({ produtos, module, boxId, defaultIcon = "cake" }: PdvGr
           const qty = getQty(p);
           const inCart = qty > 0;
           return (
-            <div
+            <motion.div
               key={p.id}
-              className={`relative rounded-3xl border-2 transition-all overflow-hidden flex flex-col ${
+              animate={inCart ? { scale: [1, 1.04, 1] } : {}}
+              transition={{ duration: 0.25, ease: "easeOut" }}
+              className={`relative rounded-3xl border-2 overflow-hidden flex flex-col transition-colors ${
                 inCart ? "border-primary bg-primary-container/30" : "border-outline-variant/30 bg-surface-container-low"
               }`}
               style={p.color && inCart ? { borderColor: p.color, backgroundColor: p.color + "18" } : undefined}
@@ -171,58 +174,87 @@ export function PdvGrid({ produtos, module, boxId, defaultIcon = "cake" }: PdvGr
               </button>
 
               {/* Controles de quantidade */}
-              {inCart && (
-                <div className="flex items-center justify-between px-3 pb-3 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setQty(p, -1)}
-                    className="flex size-8 items-center justify-center rounded-full bg-surface-container-highest text-foreground hover:bg-error/20 transition-all"
+              <AnimatePresence>
+                {inCart && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 32 }}
+                    className="overflow-hidden"
                   >
-                    <Minus className="size-3.5" />
-                  </button>
-                  <span className="text-sm font-black text-primary">{qty}</span>
-                  <button
-                    type="button"
-                    onClick={() => setQty(p, 1)}
-                    className="flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-all"
-                  >
-                    <Plus className="size-3.5" />
-                  </button>
-                </div>
-              )}
-            </div>
+                    <div className="flex items-center justify-between px-3 pb-3 gap-2">
+                      <motion.button
+                        type="button"
+                        whileTap={{ scale: 0.88 }}
+                        onClick={() => setQty(p, -1)}
+                        className="flex size-8 items-center justify-center rounded-full bg-surface-container-highest text-foreground hover:bg-error/20 transition-colors"
+                      >
+                        <Minus className="size-3.5" />
+                      </motion.button>
+                      <span className="text-sm font-black text-primary">{qty}</span>
+                      <motion.button
+                        type="button"
+                        whileTap={{ scale: 0.88 }}
+                        onClick={() => setQty(p, 1)}
+                        className="flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                      >
+                        <Plus className="size-3.5" />
+                      </motion.button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
           );
         })}
       </div>
 
       {/* Resumo do carrinho */}
+      <AnimatePresence>
       {cart.length > 0 && (
-        <div className="rounded-3xl bg-surface-container-low border border-outline-variant/20 p-4 space-y-3">
+        <motion.div
+          initial={{ opacity: 0, y: 24, scale: 0.97 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 16, scale: 0.97 }}
+          transition={{ type: "spring", stiffness: 340, damping: 30 }}
+          className="rounded-3xl bg-surface-container-low border border-outline-variant/20 p-4 space-y-3"
+        >
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
               <ShoppingCart className="size-4 text-primary" /> Resumo da Venda
             </h3>
-            <button
+            <motion.button
               type="button"
+              whileTap={{ scale: 0.9 }}
               onClick={() => { setCart([]); vibrate("light"); }}
               className="text-xs text-muted-foreground hover:text-destructive flex items-center gap-0.5 transition-colors"
             >
               <X className="size-3.5" /> Limpar
-            </button>
+            </motion.button>
           </div>
 
           {/* Itens */}
           <ul className="space-y-1">
-            {cart.map((i) => (
-              <li key={i.produto.id} className="flex justify-between text-xs">
-                <span className="text-foreground font-medium">
-                  {i.qty}× {i.produto.nome}
-                </span>
-                <span className="font-bold text-foreground">
-                  {brl(i.produto.preco_venda * i.qty)}
-                </span>
-              </li>
-            ))}
+            <AnimatePresence initial={false}>
+              {cart.map((i) => (
+                <motion.li
+                  key={i.produto.id}
+                  initial={{ opacity: 0, x: -10, height: 0 }}
+                  animate={{ opacity: 1, x: 0, height: "auto" }}
+                  exit={{ opacity: 0, x: 10, height: 0 }}
+                  transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                  className="flex justify-between text-xs overflow-hidden"
+                >
+                  <span className="text-foreground font-medium">
+                    {i.qty}× {i.produto.nome}
+                  </span>
+                  <span className="font-bold text-foreground">
+                    {brl(i.produto.preco_venda * i.qty)}
+                  </span>
+                </motion.li>
+              ))}
+            </AnimatePresence>
           </ul>
 
           <div className="flex items-center justify-between border-t border-outline-variant/20 pt-2">
@@ -264,31 +296,45 @@ export function PdvGrid({ produtos, module, boxId, defaultIcon = "cake" }: PdvGr
             ))}
           </div>
 
-          {/* Botão de confirmar */}
-          <button
-            type="button"
-            onClick={handleConfirm}
-            disabled={saving}
-            className={`h-14 w-full rounded-2xl font-black text-sm flex items-center justify-center gap-2 transition-all ${
-              confirmed
-                ? "bg-emerald-600 text-white"
-                : "bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-            }`}
-          >
+          {/* Botão de confirmar — AnimatePresence entre estados */}
+          <AnimatePresence mode="wait">
             {confirmed ? (
-              isConselheiro
-                ? <><Check className="size-5" /> Solicitação Enviada!</>
-                : <><Check className="size-5" /> Venda Registrada!</>
-            ) : saving ? (
-              "Registrando…"
-            ) : isConselheiro ? (
-              <><ShoppingCart className="size-5" /> Enviar Solicitação — {brl(total)}</>
+              <motion.button
+                key="confirmed"
+                type="button"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ type: "spring", stiffness: 400, damping: 28 }}
+                className="h-14 w-full rounded-2xl font-black text-sm flex items-center justify-center gap-2 bg-emerald-600 text-white"
+              >
+                <Check className="size-5" />
+                {isConselheiro ? "Solicitação Enviada!" : "Venda Registrada!"}
+              </motion.button>
             ) : (
-              <><ShoppingCart className="size-5" /> Confirmar Venda — {brl(total)}</>
+              <motion.button
+                key="confirm"
+                type="button"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                whileTap={{ scale: 0.97 }}
+                transition={{ type: "spring", stiffness: 400, damping: 28 }}
+                onClick={handleConfirm}
+                disabled={saving}
+                className="h-14 w-full rounded-2xl font-black text-sm flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+              >
+                {saving ? "Registrando…" : isConselheiro ? (
+                  <><ShoppingCart className="size-5" /> Enviar Solicitação — {brl(total)}</>
+                ) : (
+                  <><ShoppingCart className="size-5" /> Confirmar Venda — {brl(total)}</>
+                )}
+              </motion.button>
             )}
-          </button>
-        </div>
+          </AnimatePresence>
+        </motion.div>
       )}
+      </AnimatePresence>
     </div>
   );
 }

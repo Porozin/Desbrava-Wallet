@@ -1,5 +1,6 @@
-import { useState, type ReactNode } from "react";
+import { useState, useId, type ReactNode } from "react";
 import { ArrowDownLeft, ArrowUpRight, Plus, Tag, Check, X } from "lucide-react";
+import { motion, AnimatePresence, MotionConfig } from "motion/react";
 import { toast } from "sonner";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
@@ -81,6 +82,7 @@ export function TransactionList({ items, empty = "Nenhuma movimentação ainda."
 }
 
 export function ChipGroup<T extends string>({ value, options, onChange }: { value: T; options: { value: T; label: string }[]; onChange: (v: T) => void }) {
+  const uid = useId();
   return (
     <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar" role="radiogroup">
       {options.map((o) => (
@@ -90,11 +92,19 @@ export function ChipGroup<T extends string>({ value, options, onChange }: { valu
           aria-checked={value === o.value}
           onClick={() => onChange(o.value)}
           className={cn(
-            "text-xs font-semibold h-9 shrink-0 rounded-full px-4 transition-all duration-200",
-            value === o.value ? "bg-secondary-container text-on-secondary-container shadow-xs" : "bg-surface-container-high/60 text-muted-foreground hover:bg-surface-variant/40",
+            "relative text-xs font-semibold h-9 shrink-0 rounded-full px-4 transition-colors duration-150",
+            value === o.value ? "text-on-secondary-container" : "text-muted-foreground hover:text-foreground",
           )}
         >
-          {o.label}
+          {value === o.value && (
+            <motion.span
+              layoutId={`chip-${uid}`}
+              className="absolute inset-0 rounded-full bg-secondary-container shadow-xs"
+              style={{ borderRadius: 9999 }}
+              transition={{ type: "spring", stiffness: 400, damping: 32 }}
+            />
+          )}
+          <span className="relative z-10">{o.label}</span>
         </button>
       ))}
     </div>
@@ -189,17 +199,20 @@ export function NewEntryFab({
 
   return (
     <>
-      <button
+      <motion.button
         onClick={() => {
           setOpen(true);
           setIsAddingCategory(false);
         }}
         aria-label={`Nova movimentação em ${CASH_BOX_LABEL[targetBoxId]}`}
-        className="flex h-14 items-center gap-2.5 rounded-2xl bg-primary-container px-5 text-on-primary-container shadow-md transition-all active:scale-95 hover:shadow-lg"
+        whileHover={{ scale: 1.04 }}
+        whileTap={{ scale: 0.92 }}
+        transition={{ type: "spring", stiffness: 400, damping: 28 }}
+        className="flex h-14 items-center gap-2.5 rounded-2xl bg-primary-container px-5 text-on-primary-container shadow-md hover:shadow-lg"
       >
         <Plus className="size-6" />
         <span className="text-sm font-bold">Nova</span>
-      </button>
+      </motion.button>
       <Drawer open={open} onOpenChange={(v) => { setOpen(v); if (!v) setAmountValue(""); }}>
         <DrawerContent className="rounded-t-3xl bg-surface-container-low max-w-lg mx-auto">
           <DrawerHeader>
@@ -237,9 +250,11 @@ export function NewEntryFab({
                 {/* Atalhos numéricos rápidos */}
                 <div className="flex gap-1.5">
                   {[5, 10, 20, 50, 100].map((v) => (
-                    <button
+                    <motion.button
                       key={v}
                       type="button"
+                      whileTap={{ scale: 0.84 }}
+                      transition={{ type: "spring", stiffness: 500, damping: 25 }}
                       onClick={() => {
                         vibrate("light");
                         setAmountValue((prev) => {
@@ -247,10 +262,10 @@ export function NewEntryFab({
                           return String((current + v).toFixed(2));
                         });
                       }}
-                      className="flex-1 h-8 rounded-xl bg-surface-container-high text-xs font-bold text-foreground hover:bg-secondary-container hover:text-on-secondary-container transition-all"
+                      className="flex-1 h-8 rounded-xl bg-surface-container-high text-xs font-bold text-foreground hover:bg-secondary-container hover:text-on-secondary-container transition-colors"
                     >
                       +{v}
-                    </button>
+                    </motion.button>
                   ))}
                 </div>
               </div>
@@ -273,32 +288,42 @@ export function NewEntryFab({
               </div>
             </div>
 
+            <AnimatePresence>
             {isAddingCategory && (
-              <div className="flex items-center gap-2 p-2 rounded-2xl bg-surface-container-highest border border-primary/40 animate-in fade-in-50 duration-200">
-                <input
-                  type="text"
-                  value={newCatInput}
-                  onChange={(e) => setNewCatInput(e.target.value)}
-                  placeholder="Nome da nova categoria"
-                  className="h-10 flex-1 rounded-xl bg-surface px-3 text-xs text-foreground outline-none border border-outline-variant/40 focus:border-primary"
-                  autoFocus
-                />
-                <button
-                  type="button"
-                  onClick={handleSaveNewCategory}
-                  className="h-10 px-3 rounded-xl bg-primary text-primary-foreground text-xs font-bold flex items-center gap-1 shadow-xs"
-                >
-                  <Check className="size-3.5" /> Salvar
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsAddingCategory(false)}
-                  className="h-10 px-2 rounded-xl text-muted-foreground hover:text-foreground text-xs"
-                >
-                  <X className="size-4" />
-                </button>
-              </div>
+              <motion.div
+                initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                animate={{ opacity: 1, height: "auto", marginTop: 8 }}
+                exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                className="overflow-hidden"
+              >
+                <div className="flex items-center gap-2 p-2 rounded-2xl bg-surface-container-highest border border-primary/40">
+                  <input
+                    type="text"
+                    value={newCatInput}
+                    onChange={(e) => setNewCatInput(e.target.value)}
+                    placeholder="Nome da nova categoria"
+                    className="h-10 flex-1 rounded-xl bg-surface px-3 text-xs text-foreground outline-none border border-outline-variant/40 focus:border-primary"
+                    autoFocus
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSaveNewCategory}
+                    className="h-10 px-3 rounded-xl bg-primary text-primary-foreground text-xs font-bold flex items-center gap-1 shadow-xs"
+                  >
+                    <Check className="size-3.5" /> Salvar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsAddingCategory(false)}
+                    className="h-10 px-2 rounded-xl text-muted-foreground hover:text-foreground text-xs"
+                  >
+                    <X className="size-4" />
+                  </button>
+                </div>
+              </motion.div>
             )}
+            </AnimatePresence>
 
             <div className="grid grid-cols-2 gap-3">
               <select

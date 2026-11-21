@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Target, Trophy, ChevronRight, Plus } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
@@ -120,10 +121,9 @@ export function MetaProgressBar({ lucroDoceria, lucroVendas }: MetaProgressBarPr
   return (
     <>
       <div className="space-y-2">
-        {ativas.map((meta) => {
+        {ativas.map((meta, index) => {
           const isConcluida = meta.status === "concluida";
 
-          // Valor atual: automático usa lucro acumulado, manual usa valor_atual
           const valorAtual = meta.tipo === "lucro_automatico"
             ? Math.min(lucroTotal, meta.valor_alvo)
             : meta.valor_atual;
@@ -133,8 +133,12 @@ export function MetaProgressBar({ lucroDoceria, lucroVendas }: MetaProgressBarPr
             : 0;
 
           return (
-            <div key={meta.id}
-              className={`rounded-3xl border p-4 space-y-2 transition-all ${
+            <motion.div
+              key={meta.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ type: "spring", stiffness: 300, damping: 28, delay: index * 0.06 }}
+              className={`rounded-3xl border p-4 space-y-2 ${
                 isConcluida
                   ? "bg-secondary-container/30 border-secondary/30"
                   : "bg-surface-container-low border-outline-variant/20"
@@ -161,17 +165,17 @@ export function MetaProgressBar({ lucroDoceria, lucroVendas }: MetaProgressBarPr
                 </div>
               </div>
 
-              {/* Barra de progresso */}
+              {/* Barra de progresso — spring */}
               <div className="h-2.5 w-full rounded-full bg-surface-container-highest overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all duration-700 ${
-                    isConcluida ? "bg-secondary" : "bg-primary"
-                  }`}
-                  style={{ width: `${progresso}%` }}
+                <motion.div
+                  className={`h-full rounded-full ${isConcluida ? "bg-secondary" : "bg-primary"}`}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${progresso}%` }}
+                  transition={{ type: "spring", stiffness: 60, damping: 18, delay: index * 0.06 + 0.1 }}
                 />
               </div>
 
-              {/* Botão de aporte — só para manual e gestores */}
+              {/* Botão de aporte */}
               {!isConcluida && meta.tipo === "destinacao_manual" && canRecord && (
                 <button
                   onClick={() => setAporteDrawer(meta)}
@@ -180,7 +184,7 @@ export function MetaProgressBar({ lucroDoceria, lucroVendas }: MetaProgressBarPr
                   <Plus className="size-3.5" /> Destinar valor
                 </button>
               )}
-            </div>
+            </motion.div>
           );
         })}
       </div>

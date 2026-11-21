@@ -2,6 +2,7 @@ import { Link, useLocation } from "@tanstack/react-router";
 import { Home, Landmark, Cake, Zap, UserCircle2, type LucideIcon, Wifi, WifiOff, Sparkles } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
+import { motion, AnimatePresence, MotionConfig } from "motion/react";
 import { cn } from "@/lib/utils";
 import { BottomNav } from "./BottomNav";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
@@ -20,6 +21,7 @@ export function AppShell({ title, children, fab }: { title: string; children: Re
   const online = useOnlineStatus();
   const [atlasOpen, setAtlasOpen] = useState(false);
   return (
+    <MotionConfig reducedMotion="user">
     <div className="min-h-dvh bg-surface lg:pl-24 transition-colors">
       {/* Navigation rail (expanded screens) */}
       <nav aria-label="Navegação Lateral" className="fixed inset-y-0 left-0 z-30 hidden w-24 flex-col items-center gap-3 bg-surface-container-low pt-8 border-r border-outline-variant/20 lg:flex">
@@ -32,13 +34,22 @@ export function AppShell({ title, children, fab }: { title: string; children: Re
               aria-current={active ? "page" : undefined}
               className="flex min-h-16 flex-col items-center justify-center gap-1 group w-full"
             >
-              <span
-                className={cn(
-                  "flex h-8 w-16 items-center justify-center rounded-full transition-all duration-300 ease-emphasized",
-                  active ? "bg-secondary-container text-on-secondary-container shadow-xs" : "text-muted-foreground group-hover:bg-surface-variant/30",
+              <span className="relative flex h-8 w-16 items-center justify-center rounded-full">
+                {active && (
+                  <motion.span
+                    layoutId="nav-indicator"
+                    className="absolute inset-0 rounded-full bg-secondary-container shadow-xs"
+                    style={{ borderRadius: 9999 }}
+                    transition={{ type: "spring", stiffness: 380, damping: 32 }}
+                  />
                 )}
-              >
-                <n.icon className="size-5" strokeWidth={active ? 2.4 : 1.8} />
+                <n.icon
+                  className={cn(
+                    "relative size-5 transition-colors duration-200",
+                    active ? "text-on-secondary-container" : "text-muted-foreground group-hover:text-foreground"
+                  )}
+                  strokeWidth={active ? 2.4 : 1.8}
+                />
               </span>
               <span className={cn("text-xs transition-colors", active ? "font-bold text-foreground" : "font-medium text-muted-foreground")}>{n.label}</span>
             </Link>
@@ -51,14 +62,17 @@ export function AppShell({ title, children, fab }: { title: string; children: Re
           <p className="label-medium text-muted-foreground">Guerreiros do Alto</p>
           <div className="flex items-center gap-2">
             {/* Botão Atlas AI */}
-            <button
+            <motion.button
               onClick={() => setAtlasOpen(true)}
-              className="flex items-center gap-1.5 h-8 px-3 rounded-full bg-primary/10 text-primary text-[11px] font-bold hover:bg-primary/20 transition-all"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.93 }}
+              transition={{ type: "spring", stiffness: 400, damping: 28 }}
+              className="flex items-center gap-1.5 h-8 px-3 rounded-full bg-primary/10 text-primary text-[11px] font-bold hover:bg-primary/20 transition-colors"
               title="Abrir Atlas AI"
             >
               <Sparkles className="size-3.5" />
               <span>Atlas AI</span>
-            </button>
+            </motion.button>
             {/* Chip Online/Offline */}
             <span
               className={cn(
@@ -79,7 +93,14 @@ export function AppShell({ title, children, fab }: { title: string; children: Re
         <h1 className="headline-small font-black tracking-tight">{title}</h1>
       </header>
 
-      <main className="mx-auto max-w-3xl space-y-4 px-4 pb-32 lg:pb-12 pt-3">{children}</main>
+      <motion.main
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+        className="mx-auto max-w-3xl space-y-4 px-4 pb-32 lg:pb-12 pt-3"
+      >
+        {children}
+      </motion.main>
 
       {fab && <div className="fixed bottom-24 right-4 z-40 lg:bottom-6 lg:right-6">{fab}</div>}
 
@@ -89,5 +110,6 @@ export function AppShell({ title, children, fab }: { title: string; children: Re
       {/* Atlas AI */}
       <AtlasAiDrawer open={atlasOpen} onOpenChange={setAtlasOpen} />
     </div>
+    </MotionConfig>
   );
 }
