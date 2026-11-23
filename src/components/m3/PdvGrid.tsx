@@ -161,7 +161,7 @@ export function PdvGrid({ produtos, module, boxId, defaultIcon = "cake" }: PdvGr
               className={`relative rounded-3xl border-2 overflow-hidden flex flex-col transition-colors ${
                 inCart ? "border-primary bg-primary-container/30" : "border-outline-variant/30 bg-surface-container-low"
               }`}
-              style={p.color && inCart ? { borderColor: p.color, backgroundColor: p.color + "18" } : undefined}
+              style={p.color && inCart ? { borderColor: p.color, backgroundColor: p.color + "18" } : {}}
             >
               {/* Área do produto — toque adiciona */}
               <button

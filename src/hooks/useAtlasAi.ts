@@ -71,8 +71,12 @@ export function useAtlasAi() {
 
   const cancelOperation = useCallback((token: string) => {
     setMessages((prev) =>
-      prev.map((m) => m.confirmation_token === token
-        ? { ...m, operation_proposal: undefined, confirmation_token: undefined } : m)
+      prev.map((m): ChatMessage => {
+        if (m.confirmation_token !== token) return m;
+        // Remove optional fields instead of setting them to undefined
+        const { operation_proposal: _op, confirmation_token: _ct, ...rest } = m;
+        return rest;
+      })
     );
   }, []);
 

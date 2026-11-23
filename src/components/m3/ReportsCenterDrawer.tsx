@@ -202,7 +202,7 @@ export function ReportsCenterDrawer({ open, onOpenChange }: ReportsCenterDrawerP
 
   function handlePrintFilterPdf() {
     generatePrintReport({
-      module: filterBox === "todos" ? "consolidado" : filterBox,
+      module: filterBox === "todos" ? "consolidado" : filterBox === "geral" ? "clube" : (filterBox as "doceria" | "vendas"),
       title: "Relatório de Movimentações Financeiras — Histórico Filtrado",
       responsible: me?.name || "Tesouraria do Clube",
       transactions: filteredTransactions,
@@ -220,14 +220,14 @@ export function ReportsCenterDrawer({ open, onOpenChange }: ReportsCenterDrawerP
 
   function handlePrintClosingPdf() {
     generatePrintReport({
-      module: closeBox === "todos" ? "consolidado" : closeBox,
+      module: closeBox === "todos" ? "consolidado" : closeBox === "geral" ? "clube" : (closeBox as "doceria" | "vendas"),
       title: `Balancete de Fechamento Mensal — Mês ${closeMonth}/${closeYear}`,
       responsible: me?.name || "Tesouraria Oficial",
       transactions: closingTransactions,
       additionalStats: [
         { label: "Total Receitas do Mês", value: brl(closingSummary.income) },
         { label: "Total Despesas do Mês", value: brl(closingSummary.expense), isNegative: true },
-        { label: "Saldo Operacional do Mês", value: brl(closingSummary.net) },
+        { label: "Saldo Operacional do Mês", value: brl(closingSummary.balance) },
       ],
       signatures: [
         { role: "Diretor(a) do Clube" },
@@ -543,7 +543,7 @@ export function ReportsCenterDrawer({ open, onOpenChange }: ReportsCenterDrawerP
                       <div className="min-w-0">
                         <p className="font-bold text-foreground text-sm truncate">{s.seller}</p>
                         <p className="text-muted-foreground mt-0.5">
-                          {s.count} venda(s) • Total vendido: {brl(s.total)}
+                          {s.sales} venda(s) • Total vendido: {brl(s.sales)}
                         </p>
                       </div>
                     </div>
@@ -664,10 +664,10 @@ export function ReportsCenterDrawer({ open, onOpenChange }: ReportsCenterDrawerP
                     </span>
                     <strong
                       className={`text-sm font-black block mt-0.5 ${
-                        closingSummary.net >= 0 ? "text-primary" : "text-expense"
+                        closingSummary.balance >= 0 ? "text-primary" : "text-expense"
                       }`}
                     >
-                      {brl(closingSummary.net)}
+                      {brl(closingSummary.balance)}
                     </strong>
                   </div>
                 </div>

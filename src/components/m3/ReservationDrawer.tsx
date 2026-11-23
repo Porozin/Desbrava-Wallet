@@ -41,8 +41,8 @@ export const ReservationDrawer: React.FC<ReservationDrawerProps> = ({
   // Busca saldo disponível direto da RPC — muito mais rápido que calcular client-side
   useEffect(() => {
     if (!open) return;
-    supabase.rpc("fn_saldo_disponivel", { p_cash_box_id: boxId }).then(({ data }) => {
-      setSaldoDisponivel(data ?? 0);
+    supabase.rpc("fn_saldo_disponivel" as any, { p_cash_box_id: boxId }).then(({ data }) => {
+      setSaldoDisponivel((data as number | null) ?? 0);
     });
   }, [open, boxId]);
 
@@ -73,11 +73,12 @@ export const ReservationDrawer: React.FC<ReservationDrawerProps> = ({
 
     setLoading(true);
     try {
+      const descTrimmed = description.trim();
       await createReservation({
         cashBoxId: boxId,
         title: title.trim(),
-        description: description.trim() || undefined,
         amountCents,
+        ...(descTrimmed !== "" ? { description: descTrimmed } : {}),
       });
       toast.success(`Reserva "${title.trim()}" criada com sucesso!`);
       setTitle("");

@@ -56,13 +56,13 @@ function OperationCard({
       </div>
 
       <div className="space-y-1 text-xs text-foreground/80">
-        {p.cash_box_id && <div><span className="font-semibold">Caixa:</span> {CASH_BOX_LABELS[String(p.cash_box_id)] ?? String(p.cash_box_id)}</div>}
-        {p.source_box && <div><span className="font-semibold">De:</span> {CASH_BOX_LABELS[String(p.source_box)]} → <span className="font-semibold">Para:</span> {CASH_BOX_LABELS[String(p.destination_box)]}</div>}
-        {p.amount && <div><span className="font-semibold">Valor:</span> <span className="font-black text-primary">{brl(parseFloat(String(p.amount)))}</span></div>}
-        {p.description && <div><span className="font-semibold">Descrição:</span> {String(p.description)}</div>}
-        {p.category && <div><span className="font-semibold">Categoria:</span> {String(p.category)}</div>}
-        {p.payment_method && <div><span className="font-semibold">Pagamento:</span> {String(p.payment_method)}</div>}
-        {p.reverse_reason && <div><span className="font-semibold">Motivo estorno:</span> {String(p.reverse_reason)}</div>}
+        {Boolean(p['cash_box_id']) && <div><span className="font-semibold">Caixa:</span> {CASH_BOX_LABELS[String(p['cash_box_id'])] ?? String(p['cash_box_id'])}</div>}
+        {Boolean(p['source_box']) && <div><span className="font-semibold">De:</span> {CASH_BOX_LABELS[String(p['source_box'])]} → <span className="font-semibold">Para:</span> {CASH_BOX_LABELS[String(p['destination_box'])]}</div>}
+        {Boolean(p['amount']) && <div><span className="font-semibold">Valor:</span> <span className="font-black text-primary">{brl(parseFloat(String(p['amount'])))}</span></div>}
+        {Boolean(p['description']) && <div><span className="font-semibold">Descrição:</span> {String(p['description'])}</div>}
+        {Boolean(p['category']) && <div><span className="font-semibold">Categoria:</span> {String(p['category'])}</div>}
+        {Boolean(p['payment_method']) && <div><span className="font-semibold">Pagamento:</span> {String(p['payment_method'])}</div>}
+        {Boolean(p['reverse_reason']) && <div><span className="font-semibold">Motivo estorno:</span> {String(p['reverse_reason'])}</div>}
       </div>
 
       <div className="flex gap-2 pt-1">
