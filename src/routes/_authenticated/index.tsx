@@ -138,7 +138,7 @@ function Home() {
           <Landmark className="w-5 h-5 opacity-80" />
         </div>
         <div>
-          <span className="text-3xl sm:text-4xl font-black tracking-tight">
+        <span className="hero-value">
             {brl(consolidation.consolidated.balance)}
           </span>
           <p className="text-xs opacity-80 mt-1">
@@ -226,8 +226,9 @@ function Home() {
             whileTap={{ scale: 0.98 }}
           >
           <Link
-            to="/clube"
-            className="rounded-2xl bg-surface-container-low p-4 border border-outline-variant/30 hover:bg-surface-container transition-colors flex flex-col justify-between group"
+            to="/caixas"
+            onClick={() => { try { localStorage.setItem("gda_active_caixa", "geral"); } catch {} }}
+            className="rounded-2xl bg-surface-container-low p-4 border border-outline-variant/30 hover:bg-surface-container transition-colors flex flex-col justify-between group elevation-1"
           >
             <div className="flex items-center justify-between text-muted-foreground">
               <span className="text-xs font-bold group-hover:text-primary transition-colors flex items-center gap-1.5">
@@ -263,8 +264,9 @@ function Home() {
             whileTap={{ scale: 0.98 }}
           >
           <Link
-            to="/doceria"
-            className="rounded-2xl bg-surface-container-low p-4 border border-outline-variant/30 hover:bg-surface-container transition-colors flex flex-col justify-between group"
+            to="/caixas"
+            onClick={() => { try { localStorage.setItem("gda_active_caixa", "doceria"); } catch {} }}
+            className="rounded-2xl bg-surface-container-low p-4 border border-outline-variant/30 hover:bg-surface-container transition-colors flex flex-col justify-between group elevation-1"
           >
             <div className="flex items-center justify-between text-muted-foreground">
               <span className="text-xs font-bold group-hover:text-primary transition-colors flex items-center gap-1.5">
@@ -300,8 +302,9 @@ function Home() {
             whileTap={{ scale: 0.98 }}
           >
           <Link
-            to="/vendas"
-            className="rounded-2xl bg-surface-container-low p-4 border border-outline-variant/30 hover:bg-surface-container transition-colors flex flex-col justify-between group"
+            to="/caixas"
+            onClick={() => { try { localStorage.setItem("gda_active_caixa", "vendas"); } catch {} }}
+            className="rounded-2xl bg-surface-container-low p-4 border border-outline-variant/30 hover:bg-surface-container transition-colors flex flex-col justify-between group elevation-1"
           >
             <div className="flex items-center justify-between text-muted-foreground">
               <span className="text-xs font-bold group-hover:text-primary transition-colors flex items-center gap-1.5">

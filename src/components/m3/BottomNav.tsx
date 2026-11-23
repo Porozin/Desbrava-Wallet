@@ -1,20 +1,20 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "@tanstack/react-router";
-import { Landmark, Cake, Zap, UserCircle2, Home } from "lucide-react";
+import { Home, Landmark, ShoppingCart, UserCircle2 } from "lucide-react";
+import { motion } from "motion/react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface NavItem {
-  to: "/" | "/clube" | "/doceria" | "/vendas" | "/mais";
+  to: "/" | "/caixas" | "/vendas" | "/mais";
   label: string;
   icon: React.ComponentType<{ className?: string }>;
 }
 
 const navItems: NavItem[] = [
-  { to: "/", label: "Início", icon: Home },
-  { to: "/clube", label: "Clube", icon: Landmark },
-  { to: "/doceria", label: "Doceria", icon: Cake },
-  { to: "/vendas", label: "Vendas", icon: Zap },
-  { to: "/mais", label: "Perfil", icon: UserCircle2 },
+  { to: "/",       label: "Início",  icon: Home },
+  { to: "/caixas", label: "Caixas",  icon: Landmark },
+  { to: "/vendas", label: "Vendas",  icon: ShoppingCart },
+  { to: "/mais",   label: "Perfil",  icon: UserCircle2 },
 ];
 
 function PendingBadge() {
@@ -28,10 +28,10 @@ function PendingBadge() {
         const { count: c } = await supabase
           .from("transactions")
           .select("id", { count: "exact", head: true })
-          .eq("status", "pendente");
+          .filter("status", "eq", "pendente");
         if (active) setCount(c ?? 0);
       } catch {
-        // silencioso
+        // silent
       }
     };
 
@@ -63,7 +63,7 @@ export const BottomNav: React.FC = () => {
   return (
     <nav
       aria-label="Navegação Principal"
-      className="fixed bottom-0 left-0 right-0 z-50 h-20 bg-surface-container border-t border-outline-variant/30 flex items-center justify-around px-2 pb-[env(safe-area-inset-bottom)] lg:hidden transition-colors"
+      className="fixed bottom-0 left-0 right-0 z-50 h-20 bg-surface-container border-t border-outline-variant/15 flex items-center justify-around px-2 pb-[env(safe-area-inset-bottom)] lg:hidden transition-colors"
     >
       {navItems.map((item) => {
         const Icon = item.icon;
@@ -74,25 +74,32 @@ export const BottomNav: React.FC = () => {
           <Link
             key={item.to}
             to={item.to}
+            aria-current={isActive ? "page" : undefined}
             className="flex flex-col items-center justify-center flex-1 py-1 group focus:outline-none"
           >
             <div className="relative">
-              <div
-                className={`flex items-center justify-center w-16 h-8 rounded-full transition-all duration-200 ${
-                  isActive
-                    ? "bg-secondary-container text-on-secondary-container shadow-xs"
-                    : "text-on-surface-variant group-hover:bg-surface-variant/40"
-                }`}
-              >
-                <Icon className="w-5 h-5" />
+              <div className="relative flex items-center justify-center w-16 h-8 rounded-full">
+                {isActive && (
+                  <motion.span
+                    layoutId="tab-pill"
+                    className="absolute inset-0 rounded-full bg-secondary-container"
+                    style={{ borderRadius: 9999 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 32 }}
+                  />
+                )}
+                <Icon
+                  className={`relative w-5 h-5 transition-colors duration-150 ${
+                    isActive
+                      ? "text-on-secondary-container"
+                      : "text-on-surface-variant group-hover:text-foreground"
+                  }`}
+                />
               </div>
               {showBadge && <PendingBadge />}
             </div>
             <span
-              className={`text-xs mt-1 transition-all ${
-                isActive
-                  ? "font-bold text-on-surface"
-                  : "font-medium text-on-surface-variant"
+              className={`text-[11px] font-semibold mt-1 transition-colors ${
+                isActive ? "text-foreground" : "text-muted-foreground"
               }`}
             >
               {item.label}

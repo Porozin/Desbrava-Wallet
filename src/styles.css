@@ -5,8 +5,9 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Material Design 3 token system (seed: forest green).
- * shadcn names are mapped onto M3 roles so both vocabularies work.
+ * GDACaixa 2027 — Design Token System
+ * Dark-first (charcoal + teal-green accent). Light mode is opt-in via .dark removal.
+ * All M3 token names preserved; only OKLCH values updated.
  */
 
 @theme inline {
@@ -66,58 +67,155 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+/* ── LIGHT MODE (default — dark is opt-in via .dark on <html>) ─────────── */
 :root {
   --radius: 16px;
-  --surface: oklch(0.985 0.008 145);
-  --surface-container-low: oklch(0.965 0.012 145);
-  --surface-container: oklch(0.95 0.014 145);
-  --surface-container-high: oklch(0.935 0.015 145);
-  --surface-container-highest: oklch(0.915 0.016 145);
-  --background: var(--surface);
-  --foreground: oklch(0.22 0.015 150);
-  --card: var(--surface-container-low);
-  --card-foreground: var(--foreground);
-  --popover: var(--surface-container-high);
-  --popover-foreground: var(--foreground);
-  --primary: oklch(0.45 0.11 155);
-  --primary-foreground: oklch(1 0 0);
-  --primary-container: oklch(0.88 0.09 150);
-  --on-primary-container: oklch(0.25 0.07 155);
-  --secondary: oklch(0.48 0.04 150);
-  --secondary-foreground: oklch(1 0 0);
-  --secondary-container: oklch(0.9 0.035 150);
-  --on-secondary-container: oklch(0.25 0.03 150);
-  --tertiary-container: oklch(0.9 0.06 220);
-  --on-tertiary-container: oklch(0.27 0.06 225);
-  --outline: oklch(0.58 0.02 150);
-  --outline-variant: oklch(0.83 0.015 150);
-  --income: oklch(0.5 0.13 150);
-  --expense: oklch(0.55 0.19 25);
-  --muted: var(--surface-container);
-  --muted-foreground: oklch(0.45 0.02 150);
-  --accent: var(--secondary-container);
-  --accent-foreground: var(--on-secondary-container);
-  --destructive: oklch(0.55 0.19 25);
-  --destructive-foreground: oklch(1 0 0);
-  --border: var(--outline-variant);
-  --input: var(--outline);
-  --ring: var(--primary);
-  --chart-1: var(--income);
-  --chart-2: var(--expense);
-  --chart-3: oklch(0.55 0.09 225);
-  --chart-4: oklch(0.75 0.13 85);
-  --chart-5: oklch(0.6 0.1 300);
-  --sidebar: var(--surface-container);
-  --sidebar-foreground: var(--foreground);
-  --sidebar-primary: var(--primary);
-  --sidebar-primary-foreground: var(--primary-foreground);
-  --sidebar-accent: var(--secondary-container);
-  --sidebar-accent-foreground: var(--on-secondary-container);
-  --sidebar-border: var(--outline-variant);
-  --sidebar-ring: var(--primary);
-  --elevation-1: 0 1px 2px oklch(0 0 0 / 0.3), 0 1px 3px 1px oklch(0 0 0 / 0.15);
-  --elevation-3: 0 1px 3px oklch(0 0 0 / 0.3), 0 4px 8px 3px oklch(0 0 0 / 0.15);
   --ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
+
+  /* Surface scale — light */
+  --surface:                  oklch(0.97 0.004 255);
+  --surface-container-low:    oklch(0.94 0.005 255);
+  --surface-container:        oklch(0.91 0.006 255);
+  --surface-container-high:   oklch(0.87 0.007 255);
+  --surface-container-highest: oklch(0.82 0.008 255);
+  --background:               var(--surface);
+
+  /* Text */
+  --foreground:               oklch(0.14 0.01 255);
+  --muted-foreground:         oklch(0.46 0.012 255);
+
+  /* Primary — teal-green */
+  --primary:                  oklch(0.44 0.13 165);
+  --primary-foreground:       oklch(1 0 0);
+  --primary-container:        oklch(0.88 0.07 165);
+  --on-primary-container:     oklch(0.18 0.09 165);
+
+  /* Secondary — blue-indigo */
+  --secondary:                oklch(0.46 0.07 230);
+  --secondary-foreground:     oklch(1 0 0);
+  --secondary-container:      oklch(0.88 0.04 230);
+  --on-secondary-container:   oklch(0.22 0.07 230);
+
+  /* Tertiary — purple */
+  --tertiary-container:       oklch(0.88 0.06 300);
+  --on-tertiary-container:    oklch(0.26 0.07 300);
+
+  /* Outline */
+  --outline:                  oklch(0.56 0.013 255);
+  --outline-variant:          oklch(0.82 0.009 255);
+
+  /* Semantic */
+  --income:                   oklch(0.52 0.15 148);
+  --expense:                  oklch(0.56 0.21 25);
+  --destructive:              oklch(0.56 0.21 25);
+  --destructive-foreground:   oklch(1 0 0);
+
+  /* Aliases */
+  --card:                     var(--surface-container-low);
+  --card-foreground:          var(--foreground);
+  --popover:                  var(--surface-container-high);
+  --popover-foreground:       var(--foreground);
+  --muted:                    var(--surface-container);
+  --accent:                   var(--secondary-container);
+  --accent-foreground:        var(--on-secondary-container);
+  --border:                   var(--outline-variant);
+  --input:                    var(--outline);
+  --ring:                     var(--primary);
+
+  /* Charts */
+  --chart-1:                  var(--income);
+  --chart-2:                  var(--expense);
+  --chart-3:                  oklch(0.52 0.09 225);
+  --chart-4:                  oklch(0.70 0.13 85);
+  --chart-5:                  oklch(0.58 0.10 300);
+
+  /* Sidebar */
+  --sidebar:                  var(--surface-container);
+  --sidebar-foreground:       var(--foreground);
+  --sidebar-primary:          var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent:           var(--secondary-container);
+  --sidebar-accent-foreground: var(--on-secondary-container);
+  --sidebar-border:           var(--outline-variant);
+  --sidebar-ring:             var(--primary);
+
+  /* Elevation shadows — light (subtle) */
+  --elevation-1: 0 1px 3px oklch(0 0 0 / 0.12), 0 1px 2px oklch(0 0 0 / 0.08);
+  --elevation-3: 0 4px 16px oklch(0 0 0 / 0.14), 0 2px 4px oklch(0 0 0 / 0.07);
+}
+
+/* ── DARK MODE (.dark on <html> — default via useTheme + init script) ───── */
+.dark {
+  /* Surface scale — deep charcoal */
+  --surface:                  oklch(0.15 0.008 255);
+  --surface-container-low:    oklch(0.18 0.008 255);
+  --surface-container:        oklch(0.21 0.010 255);
+  --surface-container-high:   oklch(0.25 0.010 255);
+  --surface-container-highest: oklch(0.30 0.012 255);
+  --background:               oklch(0.13 0.008 255);
+
+  /* Text */
+  --foreground:               oklch(0.94 0.005 255);
+  --muted-foreground:         oklch(0.60 0.008 255);
+
+  /* Primary — vibrant teal-green on dark */
+  --primary:                  oklch(0.74 0.17 165);
+  --primary-foreground:       oklch(0.10 0.05 165);
+  --primary-container:        oklch(0.28 0.08 165);
+  --on-primary-container:     oklch(0.90 0.06 165);
+
+  /* Secondary — blue-indigo */
+  --secondary:                oklch(0.72 0.12 220);
+  --secondary-foreground:     oklch(0.10 0.04 220);
+  --secondary-container:      oklch(0.26 0.06 220);
+  --on-secondary-container:   oklch(0.90 0.05 220);
+
+  /* Tertiary */
+  --tertiary-container:       oklch(0.26 0.07 300);
+  --on-tertiary-container:    oklch(0.90 0.05 300);
+
+  /* Outline */
+  --outline:                  oklch(0.55 0.010 255);
+  --outline-variant:          oklch(0.32 0.010 255);
+
+  /* Semantic */
+  --income:                   oklch(0.76 0.17 148);
+  --expense:                  oklch(0.65 0.22 25);
+  --destructive:              oklch(0.65 0.22 25);
+  --destructive-foreground:   oklch(1 0 0);
+
+  /* Aliases */
+  --card:                     var(--surface-container-low);
+  --card-foreground:          var(--foreground);
+  --popover:                  var(--surface-container-high);
+  --popover-foreground:       var(--foreground);
+  --muted:                    var(--surface-container);
+  --accent:                   var(--secondary-container);
+  --accent-foreground:        var(--on-secondary-container);
+  --border:                   var(--outline-variant);
+  --input:                    var(--outline);
+  --ring:                     var(--primary);
+
+  /* Charts */
+  --chart-1:                  var(--income);
+  --chart-2:                  var(--expense);
+  --chart-3:                  oklch(0.60 0.10 225);
+  --chart-4:                  oklch(0.78 0.14 85);
+  --chart-5:                  oklch(0.65 0.11 300);
+
+  /* Sidebar */
+  --sidebar:                  var(--surface-container);
+  --sidebar-foreground:       var(--foreground);
+  --sidebar-primary:          var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent:           var(--secondary-container);
+  --sidebar-accent-foreground: var(--on-secondary-container);
+  --sidebar-border:           var(--outline-variant);
+  --sidebar-ring:             var(--primary);
+
+  /* Elevation shadows — dark (stronger) */
+  --elevation-1: 0 1px 3px oklch(0 0 0 / 0.50), 0 1px 2px oklch(0 0 0 / 0.40);
+  --elevation-3: 0 4px 20px oklch(0 0 0 / 0.60), 0 2px 6px oklch(0 0 0 / 0.30);
 }
 
 @layer base {
@@ -131,25 +229,27 @@
     -webkit-tap-highlight-color: transparent;
   }
 
-  /*
-   * Impede zoom automático em iOS/Android quando o usuário foca um input.
-   * iOS dispara zoom quando font-size < 16px. Forçamos 16px em todos
-   * os campos e resetamos para o tamanho visual via transform.
-   * user-scalable=no no viewport também reforça isso.
-   */
+  /* iOS/Android — prevent auto-zoom on input focus (triggers when font-size < 16px) */
   input,
   select,
   textarea {
     font-size: 16px !important;
   }
 
-  /* Scroll suave no nível raiz */
   html {
     scroll-behavior: smooth;
   }
+
+  /* Hero value — large monetary display (balance cards) */
+  .hero-value {
+    font-size: clamp(2.5rem, 8vw, 4rem);
+    font-weight: 900;
+    letter-spacing: -0.03em;
+    line-height: 1;
+  }
 }
 
-/* M3 type scale */
+/* ── M3 type scale ──────────────────────────────────────────────────────── */
 @utility headline-small {
   font-size: 1.5rem;
   line-height: 2rem;
@@ -184,6 +284,8 @@
   font-weight: 500;
   letter-spacing: 0.03em;
 }
+
+/* ── Elevation utilities ────────────────────────────────────────────────── */
 @utility elevation-1 {
   box-shadow: var(--elevation-1);
 }
@@ -195,4 +297,11 @@
 }
 @utility pb-safe {
   padding-bottom: env(safe-area-inset-bottom);
+}
+@utility no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }

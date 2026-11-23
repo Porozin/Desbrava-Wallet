@@ -14,6 +14,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as DebugAtlasRouteImport } from './routes/debug-atlas'
 import { Route as TransparenciaRouteImport } from './routes/transparencia'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as AuthenticatedCaixasRouteImport } from './routes/_authenticated/caixas'
 import { Route as AuthenticatedClubeRouteImport } from './routes/_authenticated/clube'
 import { Route as AuthenticatedDoceriaRouteImport } from './routes/_authenticated/doceria'
 import { Route as AuthenticatedMaisRouteImport } from './routes/_authenticated/mais'
@@ -43,6 +44,11 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedCaixasRoute = AuthenticatedCaixasRouteImport.update({
+  id: '/caixas',
+  path: '/caixas',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedClubeRoute = AuthenticatedClubeRouteImport.update({
   id: '/clube',
   path: '/clube',
@@ -69,6 +75,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/debug-atlas': typeof DebugAtlasRoute
   '/transparencia': typeof TransparenciaRoute
+  '/caixas': typeof AuthenticatedCaixasRoute
   '/clube': typeof AuthenticatedClubeRoute
   '/doceria': typeof AuthenticatedDoceriaRoute
   '/mais': typeof AuthenticatedMaisRoute
@@ -78,6 +85,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/debug-atlas': typeof DebugAtlasRoute
   '/transparencia': typeof TransparenciaRoute
+  '/caixas': typeof AuthenticatedCaixasRoute
   '/clube': typeof AuthenticatedClubeRoute
   '/doceria': typeof AuthenticatedDoceriaRoute
   '/mais': typeof AuthenticatedMaisRoute
@@ -90,6 +98,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/debug-atlas': typeof DebugAtlasRoute
   '/transparencia': typeof TransparenciaRoute
+  '/_authenticated/caixas': typeof AuthenticatedCaixasRoute
   '/_authenticated/clube': typeof AuthenticatedClubeRoute
   '/_authenticated/doceria': typeof AuthenticatedDoceriaRoute
   '/_authenticated/mais': typeof AuthenticatedMaisRoute
@@ -103,6 +112,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/debug-atlas'
     | '/transparencia'
+    | '/caixas'
     | '/clube'
     | '/doceria'
     | '/mais'
@@ -112,6 +122,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/debug-atlas'
     | '/transparencia'
+    | '/caixas'
     | '/clube'
     | '/doceria'
     | '/mais'
@@ -123,6 +134,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/debug-atlas'
     | '/transparencia'
+    | '/_authenticated/caixas'
     | '/_authenticated/clube'
     | '/_authenticated/doceria'
     | '/_authenticated/mais'
@@ -174,6 +186,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/caixas': {
+      id: '/_authenticated/caixas'
+      path: '/caixas'
+      fullPath: '/caixas'
+      preLoaderRoute: typeof AuthenticatedCaixasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/clube': {
       id: '/_authenticated/clube'
       path: '/clube'
@@ -206,6 +225,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedCaixasRoute: typeof AuthenticatedCaixasRoute
   AuthenticatedClubeRoute: typeof AuthenticatedClubeRoute
   AuthenticatedDoceriaRoute: typeof AuthenticatedDoceriaRoute
   AuthenticatedMaisRoute: typeof AuthenticatedMaisRoute
@@ -214,6 +234,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedCaixasRoute: AuthenticatedCaixasRoute,
   AuthenticatedClubeRoute: AuthenticatedClubeRoute,
   AuthenticatedDoceriaRoute: AuthenticatedDoceriaRoute,
   AuthenticatedMaisRoute: AuthenticatedMaisRoute,

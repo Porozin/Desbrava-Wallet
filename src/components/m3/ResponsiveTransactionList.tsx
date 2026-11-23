@@ -151,11 +151,11 @@ export const ResponsiveTransactionList: React.FC<ResponsiveTransactionListProps>
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ type: "spring", stiffness: 320, damping: 28, delay: idx * 0.04 }}
                 onClick={() => setSelectedTx(tx)}
-                className="py-3.5 flex items-center justify-between gap-3 active:bg-surface-variant/30 rounded-2xl px-2 transition-colors cursor-pointer"
+                className="py-3 px-2 rounded-2xl flex items-center justify-between gap-3 hover:bg-surface-container/60 active:bg-surface-variant/30 transition-colors cursor-pointer"
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <div
-                    className={`p-2.5 rounded-full shrink-0 ${
+                    className={`p-2.5 rounded-2xl shrink-0 ${
                       isTransfer
                         ? "bg-secondary-container text-on-secondary-container"
                         : isPositive

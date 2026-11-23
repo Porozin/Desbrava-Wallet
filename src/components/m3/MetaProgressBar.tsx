@@ -138,7 +138,7 @@ export function MetaProgressBar({ lucroDoceria, lucroVendas }: MetaProgressBarPr
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ type: "spring", stiffness: 300, damping: 28, delay: index * 0.06 }}
-              className={`rounded-3xl border p-4 space-y-2 ${
+              className={`rounded-3xl border p-4 space-y-2 elevation-1 ${
                 isConcluida
                   ? "bg-secondary-container/30 border-secondary/30"
                   : "bg-surface-container-low border-outline-variant/20"
@@ -167,7 +167,7 @@ export function MetaProgressBar({ lucroDoceria, lucroVendas }: MetaProgressBarPr
               </div>
 
               {/* Barra de progresso — spring */}
-              <div className="h-2.5 w-full rounded-full bg-surface-container-highest overflow-hidden">
+              <div className="h-2 w-full rounded-full bg-surface-container-highest overflow-hidden">
                 <motion.div
                   className={`h-full rounded-full ${isConcluida ? "bg-secondary" : "bg-primary"}`}
                   initial={{ width: 0 }}

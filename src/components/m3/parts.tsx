@@ -29,11 +29,11 @@ export { ReservationDrawer } from "./ReservationDrawer";
 const cardVariants = cva("rounded-3xl p-5 transition-transform active:scale-[0.99]", {
   variants: {
     variant: {
-      filled: "bg-surface-container-highest/60 border-none",
-      elevated: "bg-surface-container-low shadow-sm border border-outline-variant/20",
-      outlined: "border border-outline-variant/60 bg-surface",
-      primary: "bg-primary-container text-on-primary-container shadow-sm border-none",
-      tertiary: "bg-tertiary-container text-on-tertiary-container shadow-sm border-none",
+      filled:    "bg-surface-container-highest/60 border-none elevation-1",
+      elevated:  "bg-surface-container-low elevation-1 border border-outline-variant/20",
+      outlined:  "border border-outline-variant/60 bg-surface",
+      primary:   "bg-primary-container text-on-primary-container elevation-3 border-none",
+      tertiary:  "bg-tertiary-container text-on-tertiary-container elevation-3 border-none",
     },
   },
   defaultVariants: { variant: "elevated" },
@@ -207,8 +207,8 @@ export function NewEntryFab({
         aria-label={`Nova movimentação em ${CASH_BOX_LABEL[targetBoxId]}`}
         whileHover={{ scale: 1.04 }}
         whileTap={{ scale: 0.92 }}
-        transition={{ type: "spring", stiffness: 400, damping: 28 }}
-        className="flex h-14 items-center gap-2.5 rounded-2xl bg-primary-container px-5 text-on-primary-container shadow-md hover:shadow-lg"
+        transition={{ type: "spring", stiffness: 400, damping: 25 }}
+        className="flex h-14 items-center gap-2.5 rounded-2xl bg-primary text-on-primary px-5 elevation-3"
       >
         <Plus className="size-6" />
         <span className="text-sm font-bold">Nova</span>
