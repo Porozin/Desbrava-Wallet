@@ -56,7 +56,7 @@ export function ProductRecipeDrawer({
     if (!open) {
       setNome(""); setPrecoVenda(""); setComissao("");
       setIngredientes([]); setSelectedMatId(""); setQtdAdd("1");
-      setIcon(""); setColor("#22c55e");
+      setIcon(""); setColor("#22c55e"); 
       setConfirmDelete(false);
     }
   }, [open, produto]);
