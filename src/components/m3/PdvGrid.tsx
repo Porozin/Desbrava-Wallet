@@ -93,6 +93,7 @@ export function PdvGrid({ produtos, module, boxId, defaultIcon = "cake" }: PdvGr
         }, 2000);
       } else {
         // Gestor registra diretamente
+        const today = new Date().toISOString().slice(0, 10);
         await addTransaction({
           module,
           cash_box_id: boxId,
@@ -102,9 +103,23 @@ export function PdvGrid({ produtos, module, boxId, defaultIcon = "cake" }: PdvGr
           category: "Venda PDV",
           description,
           payment_method: payment as any,
-          date: new Date().toISOString().slice(0, 10),
+          date: today,
           seller: seller.trim() || undefined,
         });
+        // Registra custo dos produtos como despesa para contabilizar o lucro real
+        if (totalCusto > 0) {
+          await addTransaction({
+            module,
+            cash_box_id: boxId,
+            kind: "despesa",
+            amount: totalCusto,
+            amount_cents: toCents(totalCusto),
+            category: "Custo PDV",
+            description: "Custo: " + description,
+            payment_method: "dinheiro" as any,
+            date: today,
+          });
+        }
         vibrate("success");
         setConfirmed(true);
         qc.invalidateQueries({ queryKey: ["transactions"] });
