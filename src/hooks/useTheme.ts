@@ -1,61 +1,49 @@
-import { useState, useEffect, useCallback } from "react";
+import { useEffect, useCallback, useSyncExternalStore } from "react";
 
 type Theme = "light" | "dark";
 
-// Singleton: mantém o estado fora do React para sobreviver re-renders
-let _listeners: Array<(t: Theme) => void> = [];
-let _current: Theme = "light";
+let _theme: Theme = "light";
+const _subs = new Set<() => void>();
 
-function readStored(): Theme {
-  if (typeof window === "undefined") return "light";
-  const saved = localStorage.getItem("gda_theme") as Theme | null;
-  if (saved === "dark" || saved === "light") return saved;
-  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-}
+function notify() { _subs.forEach((fn) => fn()); }
+function getSnapshot(): Theme { return _theme; }
+function getServerSnapshot(): Theme { return "light"; }
 
-function applyClass(theme: Theme) {
+function applyClass(t: Theme) {
   if (typeof document === "undefined") return;
-  if (theme === "dark") {
-    document.documentElement.classList.add("dark");
-  } else {
-    document.documentElement.classList.remove("dark");
-  }
+  document.documentElement.classList.toggle("dark", t === "dark");
 }
 
-// Inicializa uma vez quando o módulo carrega no browser
-if (typeof window !== "undefined") {
-  _current = readStored();
-  applyClass(_current);
-}
-
-function setGlobalTheme(theme: Theme) {
-  _current = theme;
-  applyClass(theme);
-  localStorage.setItem("gda_theme", theme);
-  _listeners.forEach((fn) => fn(theme));
+export function setTheme(t: Theme) {
+  if (_theme === t) return;
+  _theme = t;
+  applyClass(t);
+  try { localStorage.setItem("gda_theme", t); } catch {}
+  notify();
 }
 
 export function useTheme() {
-  const [theme, setTheme] = useState<Theme>(() => {
-    // SSR-safe: retorna "light" no servidor, lê real no cliente
-    if (typeof window === "undefined") return "light";
-    return _current;
-  });
+  const theme = useSyncExternalStore(
+    (cb) => { _subs.add(cb); return () => _subs.delete(cb); },
+    getSnapshot,
+    getServerSnapshot,
+  );
 
   useEffect(() => {
-    // Sincroniza com o singleton ao montar
-    setTheme(_current);
-
-    // Registra listener para receber atualizações de outros componentes
-    const listener = (t: Theme) => setTheme(t);
-    _listeners.push(listener);
-    return () => {
-      _listeners = _listeners.filter((l) => l !== listener);
-    };
+    try {
+      const saved = localStorage.getItem("gda_theme") as Theme | null;
+      const resolved: Theme =
+        saved === "dark" || saved === "light"
+          ? saved
+          : window.matchMedia("(prefers-color-scheme: dark)").matches
+          ? "dark"
+          : "light";
+      setTheme(resolved);
+    } catch {}
   }, []);
 
   const toggle = useCallback(() => {
-    setGlobalTheme(_current === "dark" ? "light" : "dark");
+    setTheme(_theme === "dark" ? "light" : "dark");
   }, []);
 
   return { theme, toggle, isDark: theme === "dark" };

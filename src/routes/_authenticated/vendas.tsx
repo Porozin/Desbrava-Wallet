@@ -3,6 +3,7 @@ import { useState } from "react";
 import {
   Zap,
   Trophy,
+  TrendingUp,
   Plus,
   AlertTriangle,
   Package,
@@ -171,8 +172,24 @@ function Vendas() {
           {/* Card Central com Saldos (Disponível, Contábil e Reservas) */}
           <CashBoxHeaderCard boxId="vendas" summary={boxSummary} />
 
-          {/* Métricas de Comissões e Avarias */}
+          {/* Métricas de Performance */}
           <div className="grid grid-cols-2 gap-3">
+            <MetricCard
+              variant="filled"
+              title="Receita Total"
+              value={brl(boxSummary.income)}
+              subtitle="Vendas confirmadas"
+              icon={TrendingUp}
+              tone="income"
+            />
+            <MetricCard
+              variant="filled"
+              title="Lucro Líquido"
+              value={brl(boxSummary.income - boxSummary.expense)}
+              subtitle={boxSummary.income > 0 ? "Margem " + ((boxSummary.income - boxSummary.expense) / boxSummary.income * 100).toFixed(0) + "%" : "Sem receitas"}
+              icon={TrendingUp}
+              tone={(boxSummary.income - boxSummary.expense) >= 0 ? "income" : "expense"}
+            />
             <MetricCard
               variant="filled"
               title="Comissões Pagas"

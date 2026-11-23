@@ -19,7 +19,7 @@ import {
   ResponsiveTransactionList,
   CashBoxHeaderCard,
 } from "@/components/m3/parts";
-import { brl, profitMargin, summarizeBox } from "@/lib/finance";
+import { brl, summarizeBox } from "@/lib/finance";
 import {
   useTransactions,
   useBoxTransactions,
@@ -78,7 +78,8 @@ function Doceria() {
   const [editMaterial, setEditMaterial] = useState<MaterialItem | undefined>(undefined);
 
   const boxSummary = summarizeBox(allTx, "doceria", boxReservations);
-  const { profit, margin } = profitMargin(boxSummary.income, boxSummary.expense);
+  const profit = boxSummary.income - boxSummary.expense;
+  const margin = boxSummary.income > 0 ? profit / boxSummary.income : 0;
   const custoTotalMaterias = materiais.reduce((acc, cur) => acc + cur.custo_total, 0);
 
   const items = boxTx.filter(
