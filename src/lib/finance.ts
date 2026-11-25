@@ -61,6 +61,8 @@ export interface CashReservation {
   description?: string;
   amount_cents: number;
   status: "ativa" | "liberada" | "consumida";
+  icon_name?: string;
+  color?: string;
   created_by?: string;
   created_at?: string;
 }

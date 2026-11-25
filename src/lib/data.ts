@@ -109,6 +109,8 @@ async function fetchReservations(): Promise<CashReservation[]> {
       description: r.description ?? undefined,
       amount_cents: Number(r.amount_cents),
       status: r.status as "ativa" | "liberada" | "consumida",
+      icon_name: r.icon_name ?? "PiggyBank",
+      color: r.color ?? "#6366f1",
       created_by: r.created_by,
       created_at: r.created_at,
     }));
@@ -365,6 +367,8 @@ export async function createReservation(params: {
   title: string;
   amountCents: number;
   description?: string;
+  iconName?: string;
+  color?: string;
 }) {
   const { data, error } = await supabase.rpc("sp_criar_reserva", {
     p_cash_box_id: params.cashBoxId,
@@ -373,6 +377,17 @@ export async function createReservation(params: {
     p_description: params.description ?? null,
   });
   if (error) throw error;
+
+  // Atualiza icon_name e color após criar (sp_criar_reserva não aceita esses params ainda)
+  if (data && (params.iconName || params.color)) {
+    await supabase
+      .from("transaction_reservations")
+      .update({
+        icon_name: params.iconName ?? "PiggyBank",
+        color: params.color ?? "#6366f1",
+      } as any)
+      .eq("id", data as string);
+  }
   return data;
 }
 
